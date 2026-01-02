@@ -8,7 +8,7 @@ import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/fi
         // Your web app's Firebase configuration
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
-            apiKey: "AIzaSyCd_HEHyheAvr8wVvZreP_xKiWsG05PcCc",
+            apiKey: "<your_api_key>",
             authDomain: "weekly-menu-2.firebaseapp.com",
             projectId: "weekly-menu-2",
             storageBucket: "weekly-menu-2.firebasestorage.app",
