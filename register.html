@@ -4,13 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Create account · MealFinderrz</title>
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=21" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icon-180x180.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          referrerpolicy="no-referrer" />
 </head>
 <body class="auth-page">
     <div class="auth-card">
@@ -69,7 +68,7 @@
     </div>
 
     <script type="module">
-        import { api, toast } from './app.js?v=20';
+        import { api, toast } from './app.js?v=21';
 
         api.get('/api/auth/me').then(({ user }) => {
             if (user) location.href = user.familyId ? '/' : '/family';

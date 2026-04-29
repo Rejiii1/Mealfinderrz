@@ -1,4 +1,4 @@
-import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=20';
+import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=21';
 
 let groceryItems = []; // [{ name, totalQuantity, unit, haveIt, dishIds }]
 let allDishes = [];
