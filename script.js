@@ -1,324 +1,213 @@
-// Global variables
+import { api, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=20';
+
 let currentDate = new Date();
-let meals = {}; // In-memory cache for meals
-const API_URL = '/api'; // Relative URL since served by the same server
+let meals = {};
+let dishes = [];
+let activeDateKey = null;
 
-// DOM Elements (initialized in DOMContentLoaded)
-let prevMonthButton;
-let nextMonthButton;
-let currentMonthDisplay;
-let calendarGrid;
-let addMealModal;
-let closeModalButton;
-let modalDateDisplay;
-let selectDishDropdown; // This will be the jQuery Select2 element
-let groceryListButton;
-let dishLibraryButton;
-let randomMealButton;
+const els = {};
 
-// --- API Meal Functions ---
+function fmtDateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
 
-async function loadMealsFromAPI() {
-    meals = {}; // Clear local cache
+function formatDateLong(dateKey) {
+    const [y, m, d] = dateKey.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric',
+    });
+}
+
+async function loadMeals() {
     try {
-        const response = await fetch(`${API_URL}/meals`);
-        if (!response.ok) throw new Error('Failed to fetch meals');
-        meals = await response.json();
-        console.log('Meals loaded from API:', meals);
-        renderCalendar();
-    } catch (error) {
-        console.error('Error loading meals from API:', error);
+        meals = (await api.get('/api/meals')) || {};
+    } catch {
+        meals = {};
     }
 }
 
-async function loadDishesAndPopulateDropdown() {
-    if (!selectDishDropdown) {
-        console.error("Select dish dropdown element not found.");
-        return;
-    }
+async function loadDishes() {
     try {
-        const response = await fetch(`${API_URL}/dishes`);
-        if (!response.ok) throw new Error('Failed to fetch dishes');
-        const dishes = await response.json();
-
-        // Format data for Select2
-        const select2Data = dishes.map(dish => ({
-            id: dish.name, // Use dish name as ID for simplicity in calendar mapping
-            text: dish.name
-        }));
-
-        // Clear existing options
-        $(selectDishDropdown).empty();
-        $(selectDishDropdown).append('<option value="">Select a dish</option>'); // Default placeholder
-        $(selectDishDropdown).append('<option value="clear-meal">Clear Meal</option>'); // Option to clear
-
-        // Initialize Select2 with the data
-        $(selectDishDropdown).select2({
-            placeholder: 'Search or select a dish',
-            allowClear: true,
-            dropdownParent: $('#addMealModal'),
-            data: select2Data
-        });
-
-        // Attach the change event listener *once* after initialization
-        $(selectDishDropdown).off('change', handleMealSelectionChange).on('change', handleMealSelectionChange);
-
-        console.log('Dishes loaded and dropdown populated using Select2 data.');
-
-    } catch (error) {
-        console.error("Error loading dishes:", error);
+        dishes = (await api.get('/api/dishes')) || [];
+        dishes.sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+        dishes = [];
     }
 }
-
-async function saveOrUpdateMealInAPI(dateKey, dishName) {
-    try {
-        const response = await fetch(`${API_URL}/meals`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date: dateKey, dishName: dishName })
-        });
-        if (!response.ok) throw new Error('Failed to save meal');
-
-        meals[dateKey] = dishName;
-        console.log(`Meal saved to API for date: ${dateKey}, dish: ${dishName}`);
-    } catch (error) {
-        console.error('Error saving/updating meal in API:', error);
-    }
-}
-
-async function clearMealFromAPI(dateKey) {
-    try {
-        const response = await fetch(`${API_URL}/meals/${dateKey}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Failed to delete meal');
-
-        console.log(`Meal cleared from API for date: ${dateKey}`);
-        delete meals[dateKey];
-    } catch (error) {
-        console.error('Error clearing meal from API:', error);
-    }
-}
-
-
-// --- Calendar Rendering ---
 
 function renderCalendar() {
-    if (!calendarGrid || !currentMonthDisplay) {
-        console.error("Calendar elements not ready for rendering.");
-        return;
-    }
-
     const year = currentDate.getFullYear();
-    const month = currentDate.getMonth(); // 0-indexed
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    const daysInMonth = lastDayOfMonth.getDate();
-    const startingDay = firstDayOfMonth.getDay(); // Sunday - Saturday : 0 - 6
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay();
 
-    currentMonthDisplay.textContent = firstDayOfMonth.toLocaleDateString('en-US', {
-        year: 'numeric', month: 'long'
+    els.currentMonth.textContent = firstDay.toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long',
     });
-    calendarGrid.innerHTML = ''; // Clear previous grid
 
-    // Add empty cells for padding days
+    els.grid.innerHTML = '';
+    const today = new Date();
+    const todayKey = fmtDateKey(today);
+
     for (let i = 0; i < startingDay; i++) {
-        const emptyCell = document.createElement('div');
-        calendarGrid.appendChild(emptyCell);
+        const cell = document.createElement('div');
+        cell.className = 'day empty';
+        els.grid.appendChild(cell);
     }
 
-    // Add day cells
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayCell = document.createElement('div');
-        dayCell.classList.add('day');
-        dayCell.textContent = day;
+    for (let d = 1; d <= daysInMonth; d++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'day';
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (dateKey === todayKey) cell.classList.add('today');
+        if (meals[dateKey]) cell.classList.add('has-meal');
 
-        // Format dateKey consistently as YYYY-MM-DD
-        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const num = document.createElement('span');
+        num.className = 'day-num';
+        num.textContent = d;
+        cell.appendChild(num);
 
-        const today = new Date();
-        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
-        if (isToday) {
-            dayCell.classList.add('today');
-        }
-
-        // Check if a meal exists for this date in the local 'meals' cache
         if (meals[dateKey]) {
-            dayCell.classList.add('has-meal');
-            const mealDisplay = document.createElement('div');
-            mealDisplay.classList.add('day-content');
-            mealDisplay.textContent = meals[dateKey];
-            dayCell.appendChild(mealDisplay);
+            const meal = document.createElement('span');
+            meal.className = 'meal';
+            meal.textContent = meals[dateKey];
+            cell.appendChild(meal);
         }
 
-        // Add click listener to open the modal
-        dayCell.addEventListener('click', () => openAddMealModal(dateKey));
-        calendarGrid.appendChild(dayCell);
+        cell.addEventListener('click', () => openMealModal(dateKey));
+        els.grid.appendChild(cell);
     }
 }
 
-// --- Modal Interaction ---
+function renderDishPickList(query = '') {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+        ? dishes.filter((d) => d.name.toLowerCase().includes(q) || (d.tags || []).some((t) => t.toLowerCase().includes(q)))
+        : dishes;
+    const current = activeDateKey ? meals[activeDateKey] : null;
 
-function openAddMealModal(dateKey) {
-    if (!addMealModal || !modalDateDisplay || !selectDishDropdown) {
-        console.error("Modal elements not found.");
+    els.pickList.innerHTML = '';
+    if (filtered.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = q ? `No dishes match "${query}"` : 'No dishes saved yet. Add some in the Dish Library!';
+        els.pickList.appendChild(li);
         return;
     }
-
-    modalDateDisplay.textContent = formatDateForDisplay(dateKey);
-    addMealModal.dataset.selectedDate = dateKey;
-
-    const selectDish = $(selectDishDropdown);
-
-    // Initialize Select2 if needed (it should be initialized by loadDishesAndPopulateDropdown already)
-    // Just ensuring it's ready and updating value
-
-    // Set value based on existing meal for this date, or null if none
-    const existingMeal = meals[dateKey] || null;
-    selectDish.val(existingMeal).trigger('change.select2');
-
-    addMealModal.style.display = 'flex';
-    selectDish.select2('open');
-}
-
-async function handleMealSelectionChange() {
-    const selectedDish = $(this).val();
-    const selectedDate = addMealModal.dataset.selectedDate;
-
-    if (!selectedDate) {
-        console.error("Selected date is missing from modal data.");
-        return;
-    }
-
-    console.log(`Date: ${selectedDate}, Dish selected: ${selectedDish}`);
-
-    try {
-        if (selectedDish === 'clear-meal') {
-            await clearMealFromAPI(selectedDate);
-        } else if (selectedDish) {
-            await saveOrUpdateMealInAPI(selectedDate, selectedDish);
-        } else {
-            console.log("Dish selection cleared.");
-        }
-
-        renderCalendar();
-        addMealModal.style.display = 'none';
-        $(this).val(null).trigger('change.select2');
-
-    } catch (error) {
-        console.error("Error handling meal selection change:", error);
-        alert("An error occurred while updating the meal. Please try again.");
-    }
-}
-
-
-// --- Random Meal Selection ---
-
-async function selectRandomMeal(event) {
-    // Prevent event from bubbling up and closing modal prematurely
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-
-    // Close the Select2 dropdown first
-    $(selectDishDropdown).select2('close');
-
-    const selectedDate = addMealModal.dataset.selectedDate;
-    if (!selectedDate) {
-        console.error("No date selected for random meal.");
-        return;
-    }
-
-    try {
-        // Fetch all dishes from the API
-        const response = await fetch(`${API_URL}/dishes`);
-        if (!response.ok) throw new Error('Failed to fetch dishes');
-        const dishes = await response.json();
-
-        if (!dishes || dishes.length === 0) {
-            alert('No saved dishes available. Please add some dishes first!');
-            return;
-        }
-
-        // Pick a random dish
-        const randomIndex = Math.floor(Math.random() * dishes.length);
-        const randomDish = dishes[randomIndex];
-
-        // Save the random dish to the selected date
-        await saveOrUpdateMealInAPI(selectedDate, randomDish.name);
-
-        // Refresh calendar first, then close modal
-        renderCalendar();
-        addMealModal.style.display = 'none';
-
-        console.log(`Random meal selected: ${randomDish.name} for ${selectedDate}`);
-    } catch (error) {
-        console.error('Error selecting random meal:', error);
-        alert('An error occurred while selecting a random meal. Please try again.');
-    }
-}
-
-// --- Utility Functions ---
-
-function formatDateForDisplay(dateKey) {
-    const [year, month, day] = dateKey.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    filtered.forEach((dish) => {
+        const li = document.createElement('li');
+        if (dish.name === current) li.classList.add('selected');
+        const tagText = (dish.tags || []).slice(0, 2).map(capitalizeWords).join(' · ');
+        li.innerHTML = `
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:600;">${escapeHtml(capitalizeWords(dish.name))}</div>
+                ${tagText ? `<div style="font-size:0.78rem; color: var(--text-muted);">${escapeHtml(tagText)}</div>` : ''}
+            </div>
+        `;
+        li.addEventListener('click', () => pickDish(dish.name));
+        els.pickList.appendChild(li);
     });
 }
 
-// --- Initialization ---
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function pickDish(name) {
+    if (!activeDateKey) return;
+    try {
+        await api.post('/api/meals', { date: activeDateKey, dishName: name });
+        meals[activeDateKey] = name;
+        renderCalendar();
+        closeModal(els.modal);
+        toast(`Saved ${capitalizeWords(name)} for ${formatDateLong(activeDateKey)}`, 'success');
+    } catch (e) {
+        toast(e.message || 'Could not save meal', 'error');
+    }
+}
+
+async function clearMeal() {
+    if (!activeDateKey) return;
+    if (!meals[activeDateKey]) {
+        closeModal(els.modal);
+        return;
+    }
+    try {
+        await api.del(`/api/meals/${activeDateKey}`);
+        delete meals[activeDateKey];
+        renderCalendar();
+        closeModal(els.modal);
+        toast('Meal cleared', 'info');
+    } catch (e) {
+        toast(e.message || 'Could not clear meal', 'error');
+    }
+}
+
+async function pickRandom() {
+    if (!dishes.length) {
+        toast('Add some dishes first in the Dish Library!', 'info');
+        return;
+    }
+    const random = dishes[Math.floor(Math.random() * dishes.length)];
+    await pickDish(random.name);
+}
+
+function openMealModal(dateKey) {
+    activeDateKey = dateKey;
+    els.modalDate.textContent = formatDateLong(dateKey);
+    els.search.value = '';
+    const current = meals[dateKey];
+    els.currentMealLabel.textContent = current ? `Currently: ${capitalizeWords(current)}` : 'No meal planned';
+    renderDishPickList('');
+    openModal(els.modal);
+    setTimeout(() => els.search.focus(), 80);
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Get DOM Elements
-    prevMonthButton = document.getElementById('prevMonth');
-    nextMonthButton = document.getElementById('nextMonth');
-    currentMonthDisplay = document.getElementById('currentMonth');
-    calendarGrid = document.getElementById('calendarGrid');
-    addMealModal = document.getElementById('addMealModal');
-    closeModalButton = document.getElementById('closeModal');
-    modalDateDisplay = document.getElementById('modalDate');
-    selectDishDropdown = document.getElementById('selectDish');
-    groceryListButton = document.getElementById('groceryListButton');
-    dishLibraryButton = document.getElementById('dishLibraryButton');
-    randomMealButton = document.getElementById('randomMealButton');
+    const user = await requireUser();
+    if (!user) return;
 
-    // Load initial data
-    await loadDishesAndPopulateDropdown();
-    await loadMealsFromAPI();
+    renderHeader({ title: 'Meal Planner', icon: 'fa-calendar-days', user });
+    renderBottomNav('home');
 
-    // Event Listeners
-    if (prevMonthButton) {
-        prevMonthButton.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        });
-    }
+    els.currentMonth = document.getElementById('currentMonth');
+    els.grid = document.getElementById('calendarGrid');
+    els.modal = document.getElementById('addMealModal');
+    els.modalDate = document.getElementById('modalDate');
+    els.search = document.getElementById('dishSearch');
+    els.pickList = document.getElementById('dishPickList');
+    els.currentMealLabel = document.getElementById('currentMealLabel');
 
-    if (nextMonthButton) {
-        nextMonthButton.addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
-    }
+    bindModalDismiss(els.modal, document.getElementById('closeModal'));
 
-    if (closeModalButton) {
-        closeModalButton.addEventListener('click', () => {
-            if (addMealModal) addMealModal.style.display = 'none';
-        });
-    }
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    });
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    });
+    document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        renderCalendar();
+    });
+    document.getElementById('randomMealButton').addEventListener('click', pickRandom);
+    document.getElementById('clearMealBtn').addEventListener('click', clearMeal);
+    els.search.addEventListener('input', (e) => renderDishPickList(e.target.value));
+    els.search.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const first = els.pickList.querySelector('li:not(.empty)');
+            if (first) first.click();
+        }
+    });
 
-    if (addMealModal) {
-        window.addEventListener('click', (event) => {
-            if (event.target === addMealModal) {
-                addMealModal.style.display = 'none';
-            }
-        });
-    }
-
-    if (randomMealButton) {
-        randomMealButton.addEventListener('click', selectRandomMeal);
-    }
+    await Promise.all([loadMeals(), loadDishes()]);
+    renderCalendar();
 });
