@@ -1,29 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Meal Planner</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=7">
     <link rel="manifest" href="manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-startup-image" href="launch.png"/>
+    <link rel="icon" href="icon-180x180.png">
+    <link rel="apple-touch-startup-image" href="launch.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 </head>
+
 <body>
     <header>
         <h1><img src="launch.png" alt="Meals Icon">Meal Planner</h1>
-        <button onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i></button>
+        <a href="https://dunkin.fun" class="header-logo-link">
+            <img src="DunkinNet.png" alt="DunkinNet" class="header-logo">
+        </a>
     </header>
 
     <div class="calendar-container">
         <div class="calendar-header">
-            <button id="prevMonth"><</button>
+            <button id="prevMonth">&lt;</button>
             <h2 id="currentMonth"></h2>
-            <button id="nextMonth">></button>
+            <button id="nextMonth">&gt;</button>
         </div>
         <div class="calendar-weekdays">
             <div>S</div>
@@ -42,6 +49,9 @@
         <div class="modal-content">
             <span class="close-button" id="closeModal">&times;</span>
             <h3><span id="modalDate"></span></h3>
+            <button id="randomMealButton" class="random-meal-button">
+                <i class="fas fa-dice"></i> I'm Feeling Hungry
+            </button>
             <select id="selectDish">
             </select>
         </div>
@@ -64,6 +74,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script.js?v=2"></script>
 </body>
+
 </html>

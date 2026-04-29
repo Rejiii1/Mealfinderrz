@@ -1,75 +1,70 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, collection, getDocs, updateDoc, query, where, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+const API_URL = '/api';
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCd_HEHyheAvr8wVvZreP_xKiWsG05PcCc",
-    authDomain: "weekly-menu-2.firebaseapp.com",
-    projectId: "weekly-menu-2",
-    storageBucket: "weekly-menu-2.firebasestorage.app",
-    messagingSenderId: "600774461017",
-    appId: "1:600774461017:web:70238ba949e473171e5348",
-    measurementId: "G-5FX6NGDP97"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-const groceryListContainer = document.getElementById('groceryList'); // Get the grocery list container
+// DOM Elements
+const groceryListContainer = document.getElementById('groceryList');
 const clearGroceryListButton = document.getElementById('clearGroceryList');
 
 
-async function fetchMealsFromFirestore(userId, startDate) {
+// --- API Functions ---
+
+async function fetchMealsFromAPI(startDate) {
     try {
-        const mealsCollection = collection(db, 'meals');
-        const q = query(mealsCollection,
-            where('userId', '==', userId),
-            where('date', '>=', startDate)
-        );
-        const querySnapshot = await getDocs(q);
+        const response = await fetch(`${API_URL}/meals`);
+        if (!response.ok) throw new Error('Failed to fetch meals');
+        const allMeals = await response.json(); // Object { "YYYY-MM-DD": "dishName" }
+
+        // Filter by date
         const meals = [];
-        querySnapshot.forEach((doc) => {
-            const mealData = doc.data();
-            meals.push({
-                id: doc.id, // Include the document ID (which is the dishId in this context)
-                date: mealData.date.toDate(),
-                dishName: mealData.dishName,
-            });
-        });
+        const start = new Date(startDate).getTime();
+
+        for (const [dateStr, dishName] of Object.entries(allMeals)) {
+            const mealDate = new Date(dateStr).getTime();
+            if (mealDate >= start) {
+                meals.push({
+                    date: dateStr,
+                    dishName: dishName
+                });
+            }
+        }
         return meals;
+
     } catch (error) {
         console.error('Error fetching meals:', error);
         return [];
     }
 }
 
-async function fetchIngredientsForDish(dishId) {
+async function fetchDishesFromAPI() {
     try {
-        const ingredientsCollectionRef = collection(db, 'dishes2', dishId, 'ingredients');
-        const ingredientsSnapshot = await getDocs(ingredientsCollectionRef);
-        const ingredients = [];
-        ingredientsSnapshot.forEach(doc => {
-            ingredients.push(doc.data()); // Push the ingredient data (name, quantity, haveIt)
-        });
-        return ingredients;
+        const response = await fetch(`${API_URL}/dishes`);
+        if (!response.ok) throw new Error('Failed to fetch dishes');
+        return await response.json();
     } catch (error) {
-        console.error(`Error fetching ingredients for dish ID "${dishId}":`, error);
+        console.error('Error fetching dishes:', error);
         return [];
     }
 }
-async function getDishIdByName(dishName) {
-    const dishesCollection = collection(db, 'dishes2');
-    const q = query(dishesCollection, where('name', '==', dishName));
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        return querySnapshot.docs[0].id;
+
+async function updateDishInAPI(dishId, updatedData) {
+    try {
+        const response = await fetch(`${API_URL}/dishes/${dishId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedData)
+        });
+        if (!response.ok) throw new Error('Failed to update dish');
+    } catch (error) {
+        console.error(`Error updating dish ${dishId}:`, error);
     }
-    return null;
 }
 
-// Function to generate the grocery list
+async function getDishByName(dishName, allDishes) {
+    return allDishes.find(d => d.name === dishName);
+}
+
+
+// --- Grocery List Logic ---
+
 function pluralizeUnit(unit, quantity) {
     if (quantity > 1 && unit) {
         if (unit.toLowerCase() === 'box') {
@@ -81,24 +76,6 @@ function pluralizeUnit(unit, quantity) {
         }
     }
     return unit;
-}
-
-async function updateIngredientHaveIt(dishId, ingredientName, haveIt) {
-    try {
-        const ingredientsCollectionRef = collection(db, 'dishes2', dishId, 'ingredients');
-        const q = query(ingredientsCollectionRef, where('name', '==', ingredientName));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            querySnapshot.forEach(async (doc) => {
-                await updateDoc(doc.ref, { haveIt: haveIt });
-            });
-        } else {
-            console.warn(`Ingredient "${ingredientName}" not found for dish ID "${dishId}".`);
-        }
-    } catch (error) {
-        console.error(`Error updating 'haveIt' for ${ingredientName} in ${dishId}:`, error);
-    }
 }
 
 let groceryListCache = []; // Store the generated grocery list
@@ -121,12 +98,12 @@ function displayGroceryList(groceryList) {
             checkbox.dataset.dishIds = JSON.stringify(item.dishIds);
             checkbox.checked = item.haveIt || false;
 
-            checkbox.addEventListener('change', (event) => { // Remove async here for direct DOM manipulation
+            checkbox.addEventListener('change', async (event) => {
                 const ingredientName = event.target.dataset.ingredientName;
                 const dishIds = JSON.parse(event.target.dataset.dishIds);
                 const isChecked = event.target.checked;
 
-                // Update the local groceryListCache immediately
+                // Update Local Cache
                 const updatedList = groceryListCache.map(cachedItem => {
                     if (cachedItem.name === ingredientName) {
                         return { ...cachedItem, haveIt: isChecked };
@@ -134,12 +111,32 @@ function displayGroceryList(groceryList) {
                     return cachedItem;
                 });
                 groceryListCache = updatedList;
-                displayGroceryList(groceryListCache); // Re-render with updated cache
+                displayGroceryList(groceryListCache);
 
-                // Update Firebase in the background (without awaiting)
-                dishIds.forEach(dishId => {
-                     updateIngredientHaveIt(dishId, ingredientName, isChecked);
-                });
+                // Update API (Backend)
+                // We need to update the 'haveIt' status for this ingredient in ALL dishes that have it.
+                // This requires fetching the specific dishes, updating the specific ingredient in their ingredients object, and saving back.
+                // Optimally we'd have an API endpoint to 'toggle ingredient haveIt', but let's do it client-side logic for now.
+
+                // Fetch all dishes first to be efficient? No, iterate dishIds.
+                const allDishes = await fetchDishesFromAPI(); // Get fresh data
+
+                for (const dishId of dishIds) {
+                    const dish = allDishes.find(d => d.id === dishId);
+                    if (dish && dish.ingredients) {
+                        // find ingredient entry. Ingredients is an object { id: {name, ...} }
+                        let modified = false;
+                        for (const [key, val] of Object.entries(dish.ingredients)) {
+                            if (val.name.toLowerCase() === ingredientName.toLowerCase()) {
+                                dish.ingredients[key].haveIt = isChecked;
+                                modified = true;
+                            }
+                        }
+                        if (modified) {
+                            await updateDishInAPI(dish.id, dish);
+                        }
+                    }
+                }
             });
 
             const capitalizedIngredientName = item.name.split(' ').map(word => {
@@ -161,7 +158,6 @@ function displayGroceryList(groceryList) {
             const textSpan = document.createElement('span');
             textSpan.textContent = displayText + quantityAndUnit;
 
-            //  Append in the REVERSE order: textSpan first, then checkbox
             listItem.appendChild(textSpan);
             listItem.appendChild(checkbox);
             groceryListContainer.appendChild(listItem);
@@ -169,54 +165,27 @@ function displayGroceryList(groceryList) {
     }
 }
 
-let isInitialLoad = true; // Track initial load
-
 async function generateGroceryList() {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-        console.error('User is not logged in.');
-        groceryListContainer.innerHTML = '<li>Please log in to view your grocery list.</li>';
-        return;
-    }
-
+    // Current logic: Fetch all meals from today onwards.
     const today = new Date();
-    // Create a new Date object representing the beginning of today (midnight in local time)
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const startDateStr = startOfToday.toISOString().split('T')[0]; // simple comparison string? No, API returns whatever cache matches. logic uses timestamps.
 
-    // Convert the start of today to a Firestore Timestamp
-    const startDate = Timestamp.fromDate(startOfToday);
-
-    // 1. Try to get data from localStorage first
-    let storedGroceryList = localStorage.getItem('groceryList');
-    let groceryList;
-
-    if (storedGroceryList && !isInitialLoad) { // Only use stored data if not initial load
-        try {
-            groceryList = JSON.parse(storedGroceryList);
-            groceryListCache = groceryList; // Also update the cache here
-            displayGroceryList(groceryList); // Display cached data
-        } catch (e) {
-            console.error("Error parsing stored grocery list", e);
-            localStorage.removeItem('groceryList'); // Remove invalid data
-        }
-    }
-
-    // 2. Fetch data from Firebase
     try {
-        const meals = await fetchMealsFromFirestore(userId, startDate);
+        const meals = await fetchMealsFromAPI(startDateStr);
         if (meals.length === 0) {
             groceryListContainer.innerHTML = '<li>No meals planned for today or later.</li>';
             return;
         }
 
+        const allDishes = await fetchDishesFromAPI();
         const ingredientQuantities = {};
 
         for (const meal of meals) {
-            const dishName = meal.dishName;
-            const dishId = await getDishIdByName(dishName);
-            if (dishId) {
-                const ingredients = await fetchIngredientsForDish(dishId);
-                ingredients.forEach(ingredient => {
+            const dish = await getDishByName(meal.dishName, allDishes);
+            if (dish && dish.ingredients) {
+                // Iterate over ingredients object
+                Object.values(dish.ingredients).forEach(ingredient => {
                     const cleanIngredientName = ingredient.name.toLowerCase().trim();
                     const quantityWithUnit = ingredient.quantity || '';
                     const unitMatch = quantityWithUnit.match(/[a-zA-Z]+/);
@@ -227,14 +196,17 @@ async function generateGroceryList() {
 
                     if (ingredientQuantities[cleanIngredientName]) {
                         ingredientQuantities[cleanIngredientName].totalQuantity += quantity;
+                        // Unit merging logic (kept simple)
                         if (unit && ingredientQuantities[cleanIngredientName].unit === '') {
                             ingredientQuantities[cleanIngredientName].unit = unit;
-                        } else if (unit && ingredientQuantities[cleanIngredientName].unit !== unit) {
-                            console.warn(`Inconsistent units found for ${cleanIngredientName}: ${ingredientQuantities[cleanIngredientName].unit} and ${unit}`);
                         }
+                        // Consolidate 'haveIt'. If it's true in one, is it true in all? 
+                        // Logic says: if you have it for one dish, you usually have it for all unless you used it up.
+                        // But UI shows a global checkbox. Let's sync it.
                         ingredientQuantities[cleanIngredientName].haveIt = ingredientQuantities[cleanIngredientName].haveIt || haveIt;
-                        if (!ingredientQuantities[cleanIngredientName].dishIds.includes(dishId)) {
-                            ingredientQuantities[cleanIngredientName].dishIds.push(dishId);
+
+                        if (!ingredientQuantities[cleanIngredientName].dishIds.includes(dish.id)) {
+                            ingredientQuantities[cleanIngredientName].dishIds.push(dish.id);
                         }
                     } else {
                         ingredientQuantities[cleanIngredientName] = {
@@ -242,136 +214,55 @@ async function generateGroceryList() {
                             totalQuantity: quantity,
                             unit: unit,
                             haveIt: haveIt,
-                            dishIds: [dishId]
+                            dishIds: [dish.id]
                         };
                     }
                 });
             }
         }
 
-        groceryList = Object.values(ingredientQuantities).sort((a, b) => a.name.localeCompare(b.name));
-        groceryListCache = groceryList; // Store in cache
-        localStorage.setItem('groceryList', JSON.stringify(groceryList));
-        displayGroceryList(groceryList); // Display Firebase data
+        const groceryList = Object.values(ingredientQuantities).sort((a, b) => a.name.localeCompare(b.name));
+        groceryListCache = groceryList;
+        displayGroceryList(groceryList);
 
     } catch (error) {
-        console.error("Error fetching or processing grocery list:", error);
-        // Display error to user
-        if (isInitialLoad && storedGroceryList) {
-            //If initial load, and there is stored data, use that.
-            try{
-                groceryList = JSON.parse(storedGroceryList);
-                groceryListCache = groceryList;
-                displayGroceryList(groceryList);
-            } catch(e){
-                console.error("Error parsing local storage",e)
-            }
-        } else {
-            groceryListContainer.innerHTML = '<li>Error: Could not retrieve grocery list.</li>'; // keep the message
-        }
-
-    } finally {
-        isInitialLoad = false; // Set to false after the first load attempt
+        console.error("Error generating grocery list:", error);
+        groceryListContainer.innerHTML = '<li>Error loading grocery list.</li>';
     }
 }
-
-
 
 async function clearAllGroceryList() {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-        console.error('User is not logged in.');
-        return;
-    }
+    if (!confirm("Reset 'Have It' status for all ingredients?")) return;
 
-    // 1.  Clear the 'haveIt' status for *all* ingredients in *all* dishes.
-    //     This is the key change to incorporate the original functionality.
     try {
-        const allDishesSnapshot = await getDocs(collection(db, 'dishes2'));
-        for (const dishDoc of allDishesSnapshot.docs) {
-            const ingredientsCollectionRef = collection(db, 'dishes2', dishDoc.id, 'ingredients');
-            const ingredientsSnapshot = await getDocs(ingredientsCollectionRef);
-            for (const ingredientDoc of ingredientsSnapshot.docs) {
-                await updateDoc(ingredientDoc.ref, { haveIt: false });
-                console.log(`Reset haveIt to false for ingredient ${ingredientDoc.id} in dish ${dishDoc.id}`);
-            }
-        }
-        console.log("Cleared 'haveIt' status for all ingredients in all dishes.");
-    } catch (error) {
-        console.error("Error clearing 'haveIt' status for all dishes:", error);
-        //  IMPORTANT:  Consider whether to continue clearing the grocery list if this fails.
-        //  For now, we log the error and continue, but you might want to stop the process.
-    }
-
-
-    // 2.  Fetch data from Firebase to refresh the grocery list.
-    const today = new Date();
-    const startDate = Timestamp.fromDate(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
-    const meals = await fetchMealsFromFirestore(userId, startDate);
-
-
-    // 3. Process meals and ingredients to generate grocery list data.
-    const ingredientQuantities = {};
-      if (meals && meals.length > 0) { //Fixes issue where if no meals are planned, an error is thrown
-        for (const meal of meals) {
-            const dishName = meal.dishName;
-            const dishId = await getDishIdByName(dishName); // You still need this function
-            if (dishId) {
-                const ingredients = await fetchIngredientsForDish(dishId);  // You still need this function
-                ingredients.forEach(ingredient => {
-                    const cleanIngredientName = ingredient.name.toLowerCase().trim();
-                    const quantityWithUnit = ingredient.quantity || '';
-                    const unitMatch = quantityWithUnit.match(/[a-zA-Z]+/);
-                    const quantityMatch = quantityWithUnit.match(/[\d.]+/);
-                    const quantity = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-                    const unit = unitMatch ? unitMatch[0].trim() : '';
-                    const haveIt = ingredient.haveIt || false;  //This will now always be false, but is kept for consistency
-
-                    if (ingredientQuantities[cleanIngredientName]) {
-                        ingredientQuantities[cleanIngredientName].totalQuantity += quantity;
-                        if (unit && ingredientQuantities[cleanIngredientName].unit === '') {
-                            ingredientQuantities[cleanIngredientName].unit = unit;
-                        } else if (unit && ingredientQuantities[cleanIngredientName].unit !== unit) {
-                            console.warn(`Inconsistent units found for ${cleanIngredientName}: ${ingredientQuantities[cleanIngredientName].unit} and ${unit}`);
-                        }
-                        ingredientQuantities[cleanIngredientName].haveIt = haveIt; //  Always false, but kept.
-                        if (!ingredientQuantities[cleanIngredientName].dishIds.includes(dishId)) {
-                            ingredientQuantities[cleanIngredientName].dishIds.push(dishId);
-                        }
-                    } else {
-                        ingredientQuantities[cleanIngredientName] = {
-                            name: cleanIngredientName,
-                            totalQuantity: quantity,
-                            unit: unit,
-                            haveIt: haveIt, // Always false, but kept.
-                            dishIds: [dishId]
-                        };
+        const allDishes = await fetchDishesFromAPI();
+        for (const dish of allDishes) {
+            let modified = false;
+            if (dish.ingredients) {
+                for (const key in dish.ingredients) {
+                    if (dish.ingredients[key].haveIt) {
+                        dish.ingredients[key].haveIt = false;
+                        modified = true;
                     }
-                });
+                }
+            }
+            if (modified) {
+                await updateDishInAPI(dish.id, dish);
             }
         }
-      }
-
-
-    // 4. Update local storage and the UI.
-    const groceryList = Object.values(ingredientQuantities).sort((a, b) => a.name.localeCompare(b.name));
-    localStorage.setItem('groceryList', JSON.stringify(groceryList));
-    groceryListCache = groceryList;  // Update the cache
-    displayGroceryList(groceryList);    // Refresh the display
-
+        await generateGroceryList(); // Refresh
+    } catch (error) {
+        console.error("Error clearing grocery list:", error);
+    }
 }
 
-// (Keep your existing event listener)
+// --- Initialization ---
+
 if (clearGroceryListButton) {
     clearGroceryListButton.addEventListener('click', clearAllGroceryList);
 }
 
-
-// Initial generation of the grocery list (still in the onAuthStateChanged)
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        generateGroceryList();
-    } else {
-        window.location.href = 'login.html';
-    }
+// Initial load
+document.addEventListener('DOMContentLoaded', () => {
+    generateGroceryList();
 });
