@@ -587,7 +587,28 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static(__dirname, { index: 'index.html', extensions: ['html'] }));
+app.use(
+    express.static(__dirname, {
+        index: 'index.html',
+        extensions: ['html'],
+        setHeaders(res, filePath) {
+            const base = path.basename(filePath);
+            if (base === 'sw.js') {
+                // Service worker must always be revalidated so updates roll out promptly.
+                res.setHeader('Cache-Control', 'no-cache');
+                return;
+            }
+            if (/\.html$/i.test(base)) {
+                // HTML changes rarely but we want quick rollout; SW handles offline.
+                res.setHeader('Cache-Control', 'no-cache');
+                return;
+            }
+            // Versioned (?v=) JS/CSS and binary assets: cache hard. The query
+            // string busts the cache when we bump versions in HTML.
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        },
+    })
+);
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 

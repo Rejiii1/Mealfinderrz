@@ -1,4 +1,4 @@
-import { api, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=22';
+import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=23';
 
 let currentDate = new Date();
 let meals = {};
@@ -23,7 +23,10 @@ function formatDateLong(dateKey) {
 
 async function loadMeals() {
     try {
-        meals = (await api.get('/api/meals')) || {};
+        meals = (await cachedGet('/api/meals', (fresh) => {
+            meals = fresh || {};
+            renderCalendar();
+        })) || {};
     } catch {
         meals = {};
     }
@@ -31,7 +34,11 @@ async function loadMeals() {
 
 async function loadDishes() {
     try {
-        dishes = (await api.get('/api/dishes')) || [];
+        dishes = (await cachedGet('/api/dishes', (fresh) => {
+            dishes = Array.isArray(fresh) ? [...fresh] : [];
+            dishes.sort((a, b) => a.name.localeCompare(b.name));
+        })) || [];
+        dishes = [...dishes];
         dishes.sort((a, b) => a.name.localeCompare(b.name));
     } catch {
         dishes = [];
@@ -124,6 +131,7 @@ async function pickDish(name) {
     try {
         await api.post('/api/meals', { date: activeDateKey, dishName: name });
         meals[activeDateKey] = name;
+        cache.set('GET:/api/meals', meals);
         renderCalendar();
         closeModal(els.modal);
         toast(`Saved ${capitalizeWords(name)} for ${formatDateLong(activeDateKey)}`, 'success');
@@ -141,6 +149,7 @@ async function clearMeal() {
     try {
         await api.del(`/api/meals/${activeDateKey}`);
         delete meals[activeDateKey];
+        cache.set('GET:/api/meals', meals);
         renderCalendar();
         closeModal(els.modal);
         toast('Meal cleared', 'info');

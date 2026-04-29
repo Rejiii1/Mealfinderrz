@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Sign in · MealFinderrz</title>
-    <link rel="stylesheet" href="styles.css?v=22" />
+    <link rel="stylesheet" href="styles.css?v=23" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icon-180x180.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
@@ -41,7 +41,7 @@
     </div>
 
     <script type="module">
-        import { api, toast } from './app.js?v=22';
+        import { api, toast } from './app.js?v=23';
 
         // If already signed in, bounce to home
         api.get('/api/auth/me').then(({ user }) => {
