@@ -100,7 +100,7 @@ export function renderHeader({ title, icon = 'fa-utensils', user } = {}) {
       <div class="header-actions">
         ${user
             ? `<a href="/family" class="icon-btn" title="Settings" aria-label="Settings"><i class="fas fa-gear"></i></a>
-               <button id="logoutBtn" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-right-from-bracket"></i></button>`
+               <button id="logoutBtn" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-sign-out-alt"></i></button>`
             : ''}
       </div>
     `;

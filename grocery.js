@@ -1,4 +1,4 @@
-import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=21';
+import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=22';
 
 let groceryItems = []; // [{ name, totalQuantity, unit, haveIt, dishIds }]
 let allDishes = [];
@@ -73,7 +73,7 @@ async function buildList() {
         });
         render();
     } catch (e) {
-        els.wrap.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-triangle-exclamation"></i></div><h3>Could not load list</h3><p>${escapeHtml(e.message)}</p></div>`;
+        els.wrap.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-exclamation-triangle"></i></div><h3>Could not load list</h3><p>${escapeHtml(e.message)}</p></div>`;
     }
 }
 
@@ -85,7 +85,7 @@ function render() {
     if (total === 0) {
         els.wrap.innerHTML = `
             <div class="empty-state">
-                <div class="icon"><i class="fas fa-basket-shopping"></i></div>
+                <div class="icon"><i class="fas fa-shopping-basket"></i></div>
                 <h3>Nothing to buy</h3>
                 <p>Plan some meals on the calendar — ingredients will show up here.</p>
                 <a href="/" class="btn"><i class="fas fa-calendar-days"></i> Open calendar</a>
