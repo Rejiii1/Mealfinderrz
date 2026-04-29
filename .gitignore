@@ -1,0 +1,19 @@
+node_modules/
+data/
+.env
+.env.*
+!.env.example
+
+# Claude
+CLAUDE.md
+memory/
+.claude/
+
+# Logs
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

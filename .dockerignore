@@ -1,0 +1,13 @@
+node_modules
+data
+.env
+.env.*
+.git
+.github
+.claude
+CLAUDE.md
+memory
+*.log
+README.md
+LICENSE
+DunkinNet.png
