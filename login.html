@@ -4,13 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Sign in · MealFinderrz</title>
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=22" />
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="icon-180x180.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          referrerpolicy="no-referrer" />
 </head>
 <body class="auth-page">
     <div class="auth-card">
@@ -32,7 +31,7 @@
                 <input class="input" type="password" id="password" name="password" required autocomplete="current-password" />
             </div>
             <button class="btn btn-block btn-lg" type="submit" id="submitBtn">
-                <i class="fas fa-arrow-right-to-bracket"></i> Sign in
+                <i class="fas fa-sign-in-alt"></i> Sign in
             </button>
         </form>
 
@@ -42,7 +41,7 @@
     </div>
 
     <script type="module">
-        import { api, toast } from './app.js?v=20';
+        import { api, toast } from './app.js?v=22';
 
         // If already signed in, bounce to home
         api.get('/api/auth/me').then(({ user }) => {

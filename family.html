@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Family · MealFinderrz</title>
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <title>Settings · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=22" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#072444" />
     <link rel="icon" href="icon-180x180.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+          referrerpolicy="no-referrer" />
 </head>
 <body>
     <header class="app-header"></header>
@@ -23,7 +22,7 @@
     <nav class="bottom-nav"></nav>
 
     <script type="module">
-        import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=20';
+        import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=22';
 
         function escapeHtml(s) {
             return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -39,14 +38,14 @@
                 if (!family) renderNoFamily(root);
                 else renderFamily(root, family);
             } catch (e) {
-                root.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-triangle-exclamation"></i></div><h3>Could not load</h3><p>${escapeHtml(e.message)}</p></div>`;
+                root.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-exclamation-triangle"></i></div><h3>Could not load</h3><p>${escapeHtml(e.message)}</p></div>`;
             }
         }
 
         function renderNoFamily(root) {
             root.innerHTML = `
                 <div class="card">
-                    <h2 class="page-title"><i class="fas fa-people-roof" style="color: var(--brand-blue);"></i> You aren't in a family yet</h2>
+                    <h2 class="page-title"><i class="fas fa-users" style="color: var(--brand-blue);"></i> You aren't in a family yet</h2>
                     <p class="help">Create a new family to get a shared calendar &amp; dish library, or join one with an invite code.</p>
 
                     <div class="auth-tabs" style="margin-top: 14px;" role="tablist">
@@ -70,7 +69,7 @@
                             <input class="input" id="joinCode" placeholder="ABC123" maxlength="6" style="text-transform: uppercase; letter-spacing: 4px; font-family: ui-monospace, monospace;" />
                         </div>
                         <button class="btn btn-block btn-yellow" id="joinFamilyBtn" style="margin-top: 12px;">
-                            <i class="fas fa-right-to-bracket"></i> Join family
+                            <i class="fas fa-sign-in-alt"></i> Join family
                         </button>
                     </div>
                 </div>
@@ -126,7 +125,7 @@
             root.innerHTML = `
                 <div class="card family-card">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                        <h2 class="page-title" style="margin:0;"><i class="fas fa-people-roof" style="color: var(--brand-blue);"></i> ${escapeHtml(family.name)}</h2>
+                        <h2 class="page-title" style="margin:0;"><i class="fas fa-users" style="color: var(--brand-blue);"></i> ${escapeHtml(family.name)}</h2>
                         ${isOwner ? '<button id="renameBtn" class="btn btn-ghost btn-sm"><i class="fas fa-pencil"></i> Rename</button>' : ''}
                     </div>
 
@@ -146,13 +145,13 @@
 
                     <div class="divider"></div>
                     <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end;">
-                        <button class="btn btn-ghost" id="accountBtn"><i class="fas fa-user-gear"></i> Account</button>
+                        <button class="btn btn-ghost" id="accountBtn"><i class="fas fa-user-cog"></i> Account</button>
                         <button class="btn btn-danger" id="leaveBtn"><i class="fas fa-door-open"></i> Leave family</button>
                     </div>
                 </div>
 
                 <div id="accountPanel" class="card" style="margin-top:14px; display:none;">
-                    <h2 class="page-title" style="margin-top:0;"><i class="fas fa-user-gear"></i> Account</h2>
+                    <h2 class="page-title" style="margin-top:0;"><i class="fas fa-user-cog"></i> Account</h2>
                     <div class="field">
                         <label for="acctDisplayName">Display name</label>
                         <input class="input" id="acctDisplayName" value="${escapeHtml(me.displayName)}" maxlength="64" />
@@ -236,7 +235,7 @@
                     toast('Saved', 'success');
                     root.querySelector('#acctCurrent').value = '';
                     root.querySelector('#acctNew').value = '';
-                    renderHeader({ title: 'Family', icon: 'fa-people-roof', user: me });
+                    renderHeader({ title: 'Settings', icon: 'fa-gear', user: me });
                 } catch (e) {
                     toast(e.message || 'Could not save', 'error');
                 }
@@ -246,7 +245,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             me = await requireUser();
             if (!me) return;
-            renderHeader({ title: 'Family', icon: 'fa-people-roof', user: me });
+            renderHeader({ title: 'Settings', icon: 'fa-gear', user: me });
             renderBottomNav('home');
             await load();
         });

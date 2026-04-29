@@ -99,8 +99,8 @@ export function renderHeader({ title, icon = 'fa-utensils', user } = {}) {
       </div>
       <div class="header-actions">
         ${user
-            ? `<a href="/family" class="icon-btn" title="Family"><i class="fas fa-people-roof"></i></a>
-               <button id="logoutBtn" class="icon-btn" title="Log out"><i class="fas fa-sign-out-alt"></i></button>`
+            ? `<a href="/family" class="icon-btn" title="Settings" aria-label="Settings"><i class="fas fa-gear"></i></a>
+               <button id="logoutBtn" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-sign-out-alt"></i></button>`
             : ''}
       </div>
     `;

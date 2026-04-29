@@ -1,4 +1,4 @@
-import { api, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=20';
+import { api, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=22';
 
 let allDishes = [];
 let allTags = [];
