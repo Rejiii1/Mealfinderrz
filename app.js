@@ -1,5 +1,47 @@
 // Shared client utilities — toasts, fetch wrapper, modal helpers, auth.
 
+// ─── Service worker (snappy tab-switching on iPhone) ────────────────
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+}
+
+// ─── Stale-while-revalidate cache for GETs ──────────────────────────
+
+const CACHE_PREFIX = 'mfz:';
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 1 day
+
+export const cache = {
+    get(key) {
+        try {
+            const raw = sessionStorage.getItem(CACHE_PREFIX + key);
+            if (!raw) return null;
+            const { ts, value } = JSON.parse(raw);
+            if (Date.now() - ts > CACHE_TTL_MS) return null;
+            return value;
+        } catch {
+            return null;
+        }
+    },
+    set(key, value) {
+        try {
+            sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ ts: Date.now(), value }));
+        } catch {}
+    },
+    clear() {
+        try {
+            const keys = [];
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const k = sessionStorage.key(i);
+                if (k && k.startsWith(CACHE_PREFIX)) keys.push(k);
+            }
+            keys.forEach((k) => sessionStorage.removeItem(k));
+        } catch {}
+    },
+};
+
 export const api = {
     async request(path, opts = {}) {
         const headers = { 'Accept': 'application/json', ...(opts.headers || {}) };
@@ -12,6 +54,7 @@ export const api = {
         const data = ct.includes('application/json') ? await res.json().catch(() => null) : null;
         if (!res.ok) {
             if (res.status === 401) {
+                cache.clear();
                 if (!location.pathname.startsWith('/login')) {
                     location.href = '/login';
                 }
@@ -29,6 +72,32 @@ export const api = {
     put: (p, body) => api.request(p, { method: 'PUT', body }),
     del: (p) => api.request(p, { method: 'DELETE' }),
 };
+
+// Stale-while-revalidate GET. Returns the cached value immediately if present
+// (or awaits the network if not), and calls onFresh(data) later if the network
+// response differs from the cached one. Use this for snappy first-paint.
+export async function cachedGet(path, onFresh) {
+    const key = 'GET:' + path;
+    const cached = cache.get(key);
+    const networkPromise = api
+        .get(path)
+        .then((data) => {
+            cache.set(key, data);
+            return data;
+        });
+
+    if (cached !== null && cached !== undefined) {
+        networkPromise
+            .then((fresh) => {
+                if (typeof onFresh === 'function' && JSON.stringify(fresh) !== JSON.stringify(cached)) {
+                    onFresh(fresh);
+                }
+            })
+            .catch(() => {});
+        return cached;
+    }
+    return networkPromise;
+}
 
 // ─── Toasts ──────────────────────────────────────────────────────────
 
@@ -110,6 +179,7 @@ export function renderHeader({ title, icon = 'fa-utensils', user } = {}) {
             try {
                 await api.post('/api/auth/logout', {});
             } finally {
+                cache.clear();
                 location.href = '/login';
             }
         });
@@ -138,12 +208,44 @@ export function renderBottomNav(active) {
 // ─── Auth bootstrap ─────────────────────────────────────────────────
 
 export async function requireUser() {
+    const cached = cache.get('user');
+    const revalidate = async () => {
+        try {
+            const { user } = await api.get('/api/auth/me');
+            if (!user) {
+                cache.clear();
+                location.href = '/login';
+                return null;
+            }
+            cache.set('user', user);
+            if (!user.familyId && !location.pathname.startsWith('/family')) {
+                location.href = '/family';
+            }
+            return user;
+        } catch {
+            return null;
+        }
+    };
+
+    if (cached) {
+        // Return cached user immediately so the page paints without waiting
+        // for the network. Verify in the background and only redirect on a
+        // confirmed 401 (auth wrapper handles that).
+        revalidate();
+        if (!cached.familyId && !location.pathname.startsWith('/family')) {
+            location.href = '/family';
+            return cached;
+        }
+        return cached;
+    }
+
     try {
         const { user } = await api.get('/api/auth/me');
         if (!user) {
             location.href = '/login';
             return null;
         }
+        cache.set('user', user);
         if (!user.familyId && !location.pathname.startsWith('/family')) {
             location.href = '/family';
             return user;

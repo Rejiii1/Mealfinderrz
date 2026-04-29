@@ -1,4 +1,4 @@
-import { api, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=22';
+import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=23';
 
 let allDishes = [];
 let allTags = [];
@@ -14,13 +14,30 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-async function loadAll() {
-    [allDishes, allTags] = await Promise.all([
-        api.get('/api/dishes').catch(() => []),
-        api.get('/api/tags').catch(() => []),
-    ]);
+function applyDishes(list) {
+    allDishes = Array.isArray(list) ? [...list] : [];
     allDishes.sort((a, b) => a.name.localeCompare(b.name));
+}
+function applyTags(list) {
+    allTags = Array.isArray(list) ? [...list] : [];
     allTags.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function loadAll() {
+    const [d, t] = await Promise.all([
+        cachedGet('/api/dishes', (fresh) => {
+            applyDishes(fresh);
+            renderTagFilter();
+            renderDishes();
+        }).catch(() => []),
+        cachedGet('/api/tags', (fresh) => {
+            applyTags(fresh);
+            renderTagFilter();
+            renderDishes();
+        }).catch(() => []),
+    ]);
+    applyDishes(d);
+    applyTags(t);
     renderTagFilter();
     renderDishes();
 }
@@ -199,6 +216,7 @@ async function saveDish() {
             toast('Dish added', 'success');
         }
         closeModal(els.dishModal);
+        cache.set('GET:/api/dishes', null);
         await loadAll();
     } catch (e) {
         toast(e.message || 'Could not save dish', 'error');
@@ -214,6 +232,8 @@ async function deleteDish() {
         await api.del(`/api/dishes/${editingDish.id}`);
         toast('Dish deleted', 'info');
         closeModal(els.dishModal);
+        cache.set('GET:/api/dishes', null);
+        cache.set('GET:/api/meals', null);
         await loadAll();
     } catch (e) {
         toast(e.message || 'Could not delete dish', 'error');
@@ -242,6 +262,7 @@ function renderExistingTags() {
             try {
                 await api.del(`/api/tags/${b.dataset.id}`);
                 toast('Tag deleted', 'info');
+                cache.set('GET:/api/tags', null);
                 await loadAll();
                 renderExistingTags();
             } catch (e) {
@@ -258,6 +279,7 @@ async function saveNewTag() {
     try {
         await api.post('/api/tags', { name });
         els.newTagName.value = '';
+        cache.set('GET:/api/tags', null);
         await loadAll();
         renderExistingTags();
         toast('Tag added', 'success');
