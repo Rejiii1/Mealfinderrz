@@ -1,15 +1,14 @@
 {
-  "name": "Dinner Planner",
+  "name": "MealFinderrz",
   "short_name": "Meals",
-  "start_url": ".",
+  "description": "Family meal planner — shared calendar, dish library, and grocery list.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#072444",
   "theme_color": "#072444",
+  "orientation": "portrait",
   "icons": [
-    {
-      "src": "launch.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
+    { "src": "icon-180x180.png", "type": "image/png", "sizes": "180x180" },
+    { "src": "launch.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
   ]
 }

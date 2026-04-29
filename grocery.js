@@ -1,268 +1,188 @@
-const API_URL = '/api';
+import { api, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser } from './app.js?v=20';
 
-// DOM Elements
-const groceryListContainer = document.getElementById('groceryList');
-const clearGroceryListButton = document.getElementById('clearGroceryList');
+let groceryItems = []; // [{ name, totalQuantity, unit, haveIt, dishIds }]
+let allDishes = [];
 
+const els = {};
 
-// --- API Functions ---
-
-async function fetchMealsFromAPI(startDate) {
-    try {
-        const response = await fetch(`${API_URL}/meals`);
-        if (!response.ok) throw new Error('Failed to fetch meals');
-        const allMeals = await response.json(); // Object { "YYYY-MM-DD": "dishName" }
-
-        // Filter by date
-        const meals = [];
-        const start = new Date(startDate).getTime();
-
-        for (const [dateStr, dishName] of Object.entries(allMeals)) {
-            const mealDate = new Date(dateStr).getTime();
-            if (mealDate >= start) {
-                meals.push({
-                    date: dateStr,
-                    dishName: dishName
-                });
-            }
-        }
-        return meals;
-
-    } catch (error) {
-        console.error('Error fetching meals:', error);
-        return [];
-    }
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-
-async function fetchDishesFromAPI() {
-    try {
-        const response = await fetch(`${API_URL}/dishes`);
-        if (!response.ok) throw new Error('Failed to fetch dishes');
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching dishes:', error);
-        return [];
-    }
-}
-
-async function updateDishInAPI(dishId, updatedData) {
-    try {
-        const response = await fetch(`${API_URL}/dishes/${dishId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedData)
-        });
-        if (!response.ok) throw new Error('Failed to update dish');
-    } catch (error) {
-        console.error(`Error updating dish ${dishId}:`, error);
-    }
-}
-
-async function getDishByName(dishName, allDishes) {
-    return allDishes.find(d => d.name === dishName);
-}
-
-
-// --- Grocery List Logic ---
 
 function pluralizeUnit(unit, quantity) {
-    if (quantity > 1 && unit) {
-        if (unit.toLowerCase() === 'box') {
-            return 'Boxes';
-        } else if (unit.toLowerCase().endsWith('s')) {
-            return unit;
-        } else {
-            return unit + 's';
-        }
-    }
-    return unit;
+    if (!unit) return '';
+    if (quantity <= 1) return unit;
+    const u = unit.toLowerCase();
+    if (u === 'box') return 'Boxes';
+    if (u.endsWith('s')) return unit;
+    return unit + 's';
 }
 
-let groceryListCache = []; // Store the generated grocery list
+async function buildList() {
+    els.wrap.innerHTML = `
+        <div class="skel" style="height: 64px; margin-bottom: 8px;"></div>
+        <div class="skel" style="height: 64px; margin-bottom: 8px;"></div>
+        <div class="skel" style="height: 64px; margin-bottom: 8px;"></div>
+    `;
+    try {
+        const [meals, dishes] = await Promise.all([
+            api.get('/api/meals').catch(() => ({})),
+            api.get('/api/dishes').catch(() => []),
+        ]);
+        allDishes = dishes;
 
-function displayGroceryList(groceryList) {
-    groceryListContainer.innerHTML = '';
+        const today = new Date();
+        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
 
-    if (groceryList.length === 0) {
-        const noMealsMessage = document.createElement('li');
-        noMealsMessage.textContent = 'No ingredients needed.';
-        groceryListContainer.appendChild(noMealsMessage);
-    } else {
-        groceryList.forEach(item => {
-            const listItem = document.createElement('li');
+        const dishesByName = new Map(dishes.map((d) => [d.name, d]));
+        const acc = {};
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.classList.add('grocery-item-checkbox');
-            checkbox.dataset.ingredientName = item.name;
-            checkbox.dataset.dishIds = JSON.stringify(item.dishIds);
-            checkbox.checked = item.haveIt || false;
-
-            checkbox.addEventListener('change', async (event) => {
-                const ingredientName = event.target.dataset.ingredientName;
-                const dishIds = JSON.parse(event.target.dataset.dishIds);
-                const isChecked = event.target.checked;
-
-                // Update Local Cache
-                const updatedList = groceryListCache.map(cachedItem => {
-                    if (cachedItem.name === ingredientName) {
-                        return { ...cachedItem, haveIt: isChecked };
-                    }
-                    return cachedItem;
-                });
-                groceryListCache = updatedList;
-                displayGroceryList(groceryListCache);
-
-                // Update API (Backend)
-                // We need to update the 'haveIt' status for this ingredient in ALL dishes that have it.
-                // This requires fetching the specific dishes, updating the specific ingredient in their ingredients object, and saving back.
-                // Optimally we'd have an API endpoint to 'toggle ingredient haveIt', but let's do it client-side logic for now.
-
-                // Fetch all dishes first to be efficient? No, iterate dishIds.
-                const allDishes = await fetchDishesFromAPI(); // Get fresh data
-
-                for (const dishId of dishIds) {
-                    const dish = allDishes.find(d => d.id === dishId);
-                    if (dish && dish.ingredients) {
-                        // find ingredient entry. Ingredients is an object { id: {name, ...} }
-                        let modified = false;
-                        for (const [key, val] of Object.entries(dish.ingredients)) {
-                            if (val.name.toLowerCase() === ingredientName.toLowerCase()) {
-                                dish.ingredients[key].haveIt = isChecked;
-                                modified = true;
-                            }
-                        }
-                        if (modified) {
-                            await updateDishInAPI(dish.id, dish);
-                        }
-                    }
+        for (const [dateStr, dishName] of Object.entries(meals)) {
+            const t = new Date(dateStr).getTime();
+            if (isNaN(t) || t < startOfToday) continue;
+            const dish = dishesByName.get(dishName);
+            if (!dish || !dish.ingredients) continue;
+            for (const ing of Object.values(dish.ingredients)) {
+                const cleanName = (ing.name || '').toLowerCase().trim();
+                if (!cleanName) continue;
+                const q = (ing.quantity || '').toString();
+                const qtyMatch = q.match(/[\d.]+/);
+                const unitMatch = q.match(/[a-zA-Z]+/);
+                const qty = qtyMatch ? parseFloat(qtyMatch[0]) : 1;
+                const unit = unitMatch ? unitMatch[0] : '';
+                if (!acc[cleanName]) {
+                    acc[cleanName] = {
+                        name: cleanName,
+                        totalQuantity: 0,
+                        unit: '',
+                        haveIt: false,
+                        dishIds: [],
+                    };
                 }
-            });
-
-            const capitalizedIngredientName = item.name.split(' ').map(word => {
-                return word.charAt(0).toUpperCase() + word.slice(1);
-            }).join(' ');
-
-            let displayText = capitalizedIngredientName;
-            let quantityAndUnit = '';
-            if (item.totalQuantity > 0) {
-                quantityAndUnit += ` (x ${item.totalQuantity}`;
-                if (item.unit) {
-                    const pluralUnit = pluralizeUnit(item.unit, item.totalQuantity);
-                    quantityAndUnit += ` ${pluralUnit})`;
-                } else {
-                    quantityAndUnit += `)`;
-                }
+                acc[cleanName].totalQuantity += isNaN(qty) ? 0 : qty;
+                if (unit && !acc[cleanName].unit) acc[cleanName].unit = unit;
+                acc[cleanName].haveIt = acc[cleanName].haveIt || !!ing.haveIt;
+                if (!acc[cleanName].dishIds.includes(dish.id)) acc[cleanName].dishIds.push(dish.id);
             }
+        }
 
-            const textSpan = document.createElement('span');
-            textSpan.textContent = displayText + quantityAndUnit;
-
-            listItem.appendChild(textSpan);
-            listItem.appendChild(checkbox);
-            groceryListContainer.appendChild(listItem);
+        groceryItems = Object.values(acc).sort((a, b) => {
+            // Unchecked first, then alpha
+            if (a.haveIt !== b.haveIt) return a.haveIt ? 1 : -1;
+            return a.name.localeCompare(b.name);
         });
+        render();
+    } catch (e) {
+        els.wrap.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-triangle-exclamation"></i></div><h3>Could not load list</h3><p>${escapeHtml(e.message)}</p></div>`;
     }
 }
 
-async function generateGroceryList() {
-    // Current logic: Fetch all meals from today onwards.
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const startDateStr = startOfToday.toISOString().split('T')[0]; // simple comparison string? No, API returns whatever cache matches. logic uses timestamps.
+function render() {
+    const total = groceryItems.length;
+    const got = groceryItems.filter((i) => i.haveIt).length;
+    els.stats.textContent = total === 0 ? 'No ingredients needed' : `${got} of ${total} got it`;
+
+    if (total === 0) {
+        els.wrap.innerHTML = `
+            <div class="empty-state">
+                <div class="icon"><i class="fas fa-basket-shopping"></i></div>
+                <h3>Nothing to buy</h3>
+                <p>Plan some meals on the calendar — ingredients will show up here.</p>
+                <a href="/" class="btn"><i class="fas fa-calendar-days"></i> Open calendar</a>
+            </div>
+        `;
+        return;
+    }
+
+    const ul = document.createElement('ul');
+    ul.className = 'grocery-list';
+    groceryItems.forEach((item, idx) => {
+        const li = document.createElement('li');
+        if (item.haveIt) li.classList.add('checked');
+        const qtyText = item.totalQuantity > 0
+            ? `${item.totalQuantity}${item.unit ? ' ' + pluralizeUnit(item.unit, item.totalQuantity) : ''}`
+            : '';
+        li.innerHTML = `
+            <input type="checkbox" class="grocery-checkbox" ${item.haveIt ? 'checked' : ''} aria-label="Got ${escapeHtml(item.name)}" />
+            <span class="name">${escapeHtml(capitalizeWords(item.name))}</span>
+            ${qtyText ? `<span class="qty">${escapeHtml(qtyText)}</span>` : ''}
+        `;
+        const cb = li.querySelector('input');
+        const toggle = async () => {
+            cb.checked = !cb.checked;
+            await onToggle(idx, cb.checked);
+        };
+        li.addEventListener('click', (e) => {
+            if (e.target === cb) return;
+            toggle();
+        });
+        cb.addEventListener('click', (e) => e.stopPropagation());
+        cb.addEventListener('change', () => onToggle(idx, cb.checked));
+        ul.appendChild(li);
+    });
+    els.wrap.innerHTML = '';
+    els.wrap.appendChild(ul);
+}
+
+async function onToggle(idx, checked) {
+    const item = groceryItems[idx];
+    item.haveIt = checked;
+
+    // Optimistic re-sort + render
+    groceryItems.sort((a, b) => {
+        if (a.haveIt !== b.haveIt) return a.haveIt ? 1 : -1;
+        return a.name.localeCompare(b.name);
+    });
+    render();
 
     try {
-        const meals = await fetchMealsFromAPI(startDateStr);
-        if (meals.length === 0) {
-            groceryListContainer.innerHTML = '<li>No meals planned for today or later.</li>';
-            return;
-        }
-
-        const allDishes = await fetchDishesFromAPI();
-        const ingredientQuantities = {};
-
-        for (const meal of meals) {
-            const dish = await getDishByName(meal.dishName, allDishes);
-            if (dish && dish.ingredients) {
-                // Iterate over ingredients object
-                Object.values(dish.ingredients).forEach(ingredient => {
-                    const cleanIngredientName = ingredient.name.toLowerCase().trim();
-                    const quantityWithUnit = ingredient.quantity || '';
-                    const unitMatch = quantityWithUnit.match(/[a-zA-Z]+/);
-                    const quantityMatch = quantityWithUnit.match(/[\d.]+/);
-                    const quantity = quantityMatch ? parseFloat(quantityMatch[0]) : 1;
-                    const unit = unitMatch ? unitMatch[0].trim() : '';
-                    const haveIt = ingredient.haveIt || false;
-
-                    if (ingredientQuantities[cleanIngredientName]) {
-                        ingredientQuantities[cleanIngredientName].totalQuantity += quantity;
-                        // Unit merging logic (kept simple)
-                        if (unit && ingredientQuantities[cleanIngredientName].unit === '') {
-                            ingredientQuantities[cleanIngredientName].unit = unit;
-                        }
-                        // Consolidate 'haveIt'. If it's true in one, is it true in all? 
-                        // Logic says: if you have it for one dish, you usually have it for all unless you used it up.
-                        // But UI shows a global checkbox. Let's sync it.
-                        ingredientQuantities[cleanIngredientName].haveIt = ingredientQuantities[cleanIngredientName].haveIt || haveIt;
-
-                        if (!ingredientQuantities[cleanIngredientName].dishIds.includes(dish.id)) {
-                            ingredientQuantities[cleanIngredientName].dishIds.push(dish.id);
-                        }
-                    } else {
-                        ingredientQuantities[cleanIngredientName] = {
-                            name: cleanIngredientName,
-                            totalQuantity: quantity,
-                            unit: unit,
-                            haveIt: haveIt,
-                            dishIds: [dish.id]
-                        };
-                    }
-                });
+        // Persist by updating each affected dish's ingredient.haveIt
+        for (const dishId of item.dishIds) {
+            const dish = allDishes.find((d) => d.id === dishId);
+            if (!dish || !dish.ingredients) continue;
+            let modified = false;
+            for (const [key, val] of Object.entries(dish.ingredients)) {
+                if ((val.name || '').toLowerCase() === item.name.toLowerCase() && val.haveIt !== checked) {
+                    dish.ingredients[key].haveIt = checked;
+                    modified = true;
+                }
             }
+            if (modified) await api.put(`/api/dishes/${dish.id}`, dish);
         }
-
-        const groceryList = Object.values(ingredientQuantities).sort((a, b) => a.name.localeCompare(b.name));
-        groceryListCache = groceryList;
-        displayGroceryList(groceryList);
-
-    } catch (error) {
-        console.error("Error generating grocery list:", error);
-        groceryListContainer.innerHTML = '<li>Error loading grocery list.</li>';
+    } catch (e) {
+        toast(e.message || 'Could not save change', 'error');
     }
 }
 
-async function clearAllGroceryList() {
-    if (!confirm("Reset 'Have It' status for all ingredients?")) return;
-
+async function clearAll() {
+    if (!confirm("Reset 'Got it' status for every ingredient?")) return;
     try {
-        const allDishes = await fetchDishesFromAPI();
         for (const dish of allDishes) {
             let modified = false;
             if (dish.ingredients) {
-                for (const key in dish.ingredients) {
-                    if (dish.ingredients[key].haveIt) {
-                        dish.ingredients[key].haveIt = false;
+                for (const k in dish.ingredients) {
+                    if (dish.ingredients[k].haveIt) {
+                        dish.ingredients[k].haveIt = false;
                         modified = true;
                     }
                 }
             }
-            if (modified) {
-                await updateDishInAPI(dish.id, dish);
-            }
+            if (modified) await api.put(`/api/dishes/${dish.id}`, dish);
         }
-        await generateGroceryList(); // Refresh
-    } catch (error) {
-        console.error("Error clearing grocery list:", error);
+        toast('List reset', 'info');
+        await buildList();
+    } catch (e) {
+        toast(e.message || 'Could not reset', 'error');
     }
 }
 
-// --- Initialization ---
-
-if (clearGroceryListButton) {
-    clearGroceryListButton.addEventListener('click', clearAllGroceryList);
-}
-
-// Initial load
-document.addEventListener('DOMContentLoaded', () => {
-    generateGroceryList();
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = await requireUser();
+    if (!user) return;
+    renderHeader({ title: 'Grocery List', icon: 'fa-list-check', user });
+    renderBottomNav('grocery');
+    els.wrap = document.getElementById('groceryListWrap');
+    els.stats = document.getElementById('groceryStats');
+    document.getElementById('clearGroceryList').addEventListener('click', clearAll);
+    await buildList();
 });

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Sign in · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="brand-icon"><i class="fas fa-utensils"></i></div>
+            <div>
+                <h1>MealFinderrz</h1>
+                <p class="subtitle">Plan tonight's dinner together.</p>
+            </div>
+        </div>
+
+        <form id="loginForm" class="field" autocomplete="on">
+            <div class="field">
+                <label for="username">Username</label>
+                <input class="input" type="text" id="username" name="username" required autofocus autocomplete="username" />
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input class="input" type="password" id="password" name="password" required autocomplete="current-password" />
+            </div>
+            <button class="btn btn-block btn-lg" type="submit" id="submitBtn">
+                <i class="fas fa-arrow-right-to-bracket"></i> Sign in
+            </button>
+        </form>
+
+        <p class="auth-footer">
+            New here? <a href="/register">Create an account</a>
+        </p>
+    </div>
+
+    <script type="module">
+        import { api, toast } from './app.js?v=20';
+
+        // If already signed in, bounce to home
+        api.get('/api/auth/me').then(({ user }) => {
+            if (user) location.href = user.familyId ? '/' : '/family';
+        }).catch(() => {});
+
+        const form = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            submitBtn.disabled = true;
+            const original = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+            try {
+                const { user } = await api.post('/api/auth/login', { username, password });
+                toast(`Welcome back, ${user.displayName}!`, 'success');
+                setTimeout(() => { location.href = user.familyId ? '/' : '/family'; }, 350);
+            } catch (err) {
+                toast(err.message || 'Login failed', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = original;
+            }
+        });
+    </script>
+</body>
+</html>

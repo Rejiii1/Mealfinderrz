@@ -1,142 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dish Library</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Dish Library · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=20" />
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css?v=7">
+    <meta name="theme-color" content="#072444" />
+    <link rel="icon" href="icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-
 <body>
+    <header class="app-header"></header>
 
-    <header>
-        <h1><img src="launch.png" alt="Meals Icon"> Dish Library</h1>
-        <a href="https://dunkin.fun" class="header-logo-link">
-            <img src="DunkinNet.png" alt="DunkinNet" class="header-logo">
-        </a>
-    </header>
+    <main class="page">
+        <div class="toolbar">
+            <input id="dishSearch" type="search" class="search-input" placeholder="Search dishes…" />
+            <button id="manageTagsBtn" class="toolbar-btn" title="Manage tags"><i class="fas fa-tags"></i></button>
+            <button id="addDishBtn" class="toolbar-btn primary" title="Add dish"><i class="fas fa-plus"></i></button>
+        </div>
 
-    <div class="dish-library-management">
+        <div class="tag-filter-row" id="tagFilterRow"></div>
 
-        <div class="current-dishes-header">
-            <button id="openAddDishModal"><i class="fas fa-square-plus"></i></button>
-            <div class="filter-section">
-                <button id="openFilterPopup"><i class="fas fa-filter"></i></button>
-                <div id="filterPopup" class="tag-popup">
-                    <div class="popup-header">
-                        <button id="clearFilter">All</button>
-                    </div>
-                    <div id="tagButtonsContainer">
-                    </div>
-                    <div class="popup-footer">
-                        <button id="openAddTagPopup"><i class="fas fa-pencil"></i></button>
+        <div id="dishList" class="dish-grid"></div>
+    </main>
+
+    <!-- Add / Edit dish modal -->
+    <div class="modal" id="dishModal" role="dialog" aria-modal="true">
+        <div class="sheet">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-header">
+                <h3 id="dishModalTitle">New dish</h3>
+                <button class="sheet-close" id="closeDishModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="field">
+                    <label for="dishName">Dish name</label>
+                    <input type="text" id="dishName" class="input" placeholder="Spaghetti Bolognese" maxlength="80" />
+                </div>
+
+                <div>
+                    <label class="section-title" style="margin: 6px 0 8px;">Ingredients</label>
+                    <ul class="ingredient-list" id="ingredientList"></ul>
+                    <div class="field-row" style="margin-top: 8px;">
+                        <input type="text" id="ingName" class="input" placeholder="Ingredient" />
+                        <input type="text" id="ingQty" class="input" placeholder="Qty (e.g. 2 cups)" style="max-width: 130px;" />
+                        <button id="addIngBtn" class="toolbar-btn primary" title="Add ingredient" aria-label="Add ingredient"><i class="fas fa-plus"></i></button>
                     </div>
                 </div>
-            </div>
 
-            <div id="addTagPopup" class="modal">
-                <div class="modal-content">
-                    <span class="close-button" id="closeAddTagModal">&times;</span>
-                    <h3>Manage Tags</h3>
-                    <div class="add-new-tag">
-                        <label for="newTagName">New Tag:</label>
-                        <input type="text" id="newTagName" placeholder="New Tag Name">
-                        <button id="saveNewTagButton">Add Tag</button>
-                    </div>
-                    <h4>Existing Tags:</h4>
-                    <ul id="existingTagsList">
-                    </ul>
+                <div>
+                    <label class="section-title" style="margin: 6px 0 8px;">Tags</label>
+                    <ul class="chip-list" id="dishTagList"></ul>
+                    <select id="tagPicker" class="input" style="margin-top: 8px;">
+                        <option value="">Add a tag…</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                    <button id="saveDishBtn" class="btn"><i class="fas fa-check"></i> Save dish</button>
+                    <button id="deleteDishBtn" class="btn btn-danger" style="display:none;"><i class="fas fa-trash-can"></i> Delete</button>
+                    <button class="btn btn-ghost" id="cancelDishBtn">Cancel</button>
                 </div>
             </div>
-
         </div>
-        <div id="dishListContainer" class="dish-grid">
-        </div>
+    </div>
 
-        <div id="addDishModal" class="modal">
-            <div class="modal-content">
-                <span class="close-button" id="closeAddModal">&times;</span>
-                <h3>Add New Dish</h3>
-                <label for="newDishName">Dish Name:</label>
-                <input type="text" id="newDishName" placeholder="Dish Name">
-
-                <h4>Ingredients:</h4>
-                <div class="add-ingredient">
-                    <input type="text" id="newDishIngredientName" placeholder="Ingredient Name">
-                    <input type="text" id="newDishIngredientQuantity" placeholder="Quantity">
-                    <button id="addDishWithIngredientsButton"><i class="fas fa-plus"></i></button>
+    <!-- Manage Tags modal -->
+    <div class="modal" id="tagModal" role="dialog" aria-modal="true">
+        <div class="sheet">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-header">
+                <h3>Manage tags</h3>
+                <button class="sheet-close" id="closeTagModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <div class="field-row">
+                    <input id="newTagName" class="input" placeholder="vegetarian" maxlength="32" />
+                    <button id="saveTagBtn" class="btn btn-yellow"><i class="fas fa-plus"></i> Add</button>
                 </div>
-                <ul id="ingredientsList">
-                </ul>
-
-                <h4>Tags:</h4>
-                <select id="availableTags">
-                    <option value="">Add a tag</option>
-                </select>
-                <ul id="selectedTagsList"></ul>
-                <button id="addDishButton">Save Dish</button>
-
-
+                <ul class="chip-list" id="existingTagsList"></ul>
             </div>
         </div>
     </div>
 
+    <nav class="bottom-nav"></nav>
 
-    <div id="dishListContainer" class="dish-grid">
-    </div>
-
-    <div id="editDishModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" id="closeEditModal">&times;</span>
-            <h3>Edit Dish</h3>
-            <label for="editDishName">Dish Name:</label>
-            <input type="text" id="editDishName">
-
-            <h4>Ingredients:</h4>
-            <ul id="editIngredientsList">
-            </ul>
-            <div class="add-ingredient">
-                <input type="text" id="editNewIngredientName" placeholder="Ingredient Name">
-                <input type="text" id="editNewIngredientQuantity" placeholder="Quantity">
-                <button id="editAddIngredientButton"><i class="fas fa-plus"></i></button>
-            </div>
-            <h4>Tags:</h4>
-            <div class="add-tag">
-                <select id="editAvailableTags">
-                    <option value="">Add a tag</option>
-                </select>
-            </div>
-            <ul id="editSelectedTagsList"></ul>
-
-            <button id="saveEditedDishButton">Save Changes</button>
-            <button id="deleteEditedDishButton">Delete Dish</button>
-            <input type="hidden" id="currentDishId">
-        </div>
-    </div>
-    </div>
-
-    <div class="bottom-navigation">
-        <div class="bottom-buttons">
-            <div class="active-dish-button">
-                <button id="active-dishLibraryButton">
-                    <i class="fas fa-book"></i>
-                </button>
-            </div>
-            <button id="homeButton" onclick="window.location.href='index.html'">
-                <i class="fas fa-home"></i>
-            </button>
-            <button id="groceryListButton" onclick="window.location.href='grocery.html'">
-                <i class="fas fa-list-check"></i>
-            </button>
-        </div>
-    </div>
-
-    <script src="dishes.js" type="module"></script>
+    <script type="module" src="dishes.js?v=20"></script>
 </body>
-
 </html>

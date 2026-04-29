@@ -1,80 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Meal Planner</title>
-    <link rel="stylesheet" href="styles.css?v=7">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Calendar · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=20" />
     <link rel="manifest" href="manifest.json" />
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="icon" href="icon-180x180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#072444" />
+    <link rel="icon" href="icon-180x180.png" />
     <link rel="apple-touch-startup-image" href="launch.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-
 <body>
-    <header>
-        <h1><img src="launch.png" alt="Meals Icon">Meal Planner</h1>
-        <a href="https://dunkin.fun" class="header-logo-link">
-            <img src="DunkinNet.png" alt="DunkinNet" class="header-logo">
-        </a>
-    </header>
+    <header class="app-header"></header>
 
-    <div class="calendar-container">
-        <div class="calendar-header">
-            <button id="prevMonth">&lt;</button>
-            <h2 id="currentMonth"></h2>
-            <button id="nextMonth">&gt;</button>
-        </div>
-        <div class="calendar-weekdays">
-            <div>S</div>
-            <div>M</div>
-            <div>T</div>
-            <div>W</div>
-            <div>T</div>
-            <div>F</div>
-            <div>S</div>
-        </div>
-        <div class="calendar-grid" id="calendarGrid">
-        </div>
-    </div>
-
-    <div class="add-meal-modal" id="addMealModal">
-        <div class="modal-content">
-            <span class="close-button" id="closeModal">&times;</span>
-            <h3><span id="modalDate"></span></h3>
-            <button id="randomMealButton" class="random-meal-button">
-                <i class="fas fa-dice"></i> I'm Feeling Hungry
-            </button>
-            <select id="selectDish">
-            </select>
-        </div>
-    </div>
-    <div class="bottom-navigation">
-        <div class="bottom-buttons">
-            <button id="dishLibraryButton" onclick="window.location.href='dishes.html'">
-                <i class="fas fa-book"></i>
-            </button>
-            <div class="active-home-button">
-                <button id="active-homeButton">
-                    <i class="fas fa-home"></i>
+    <main class="page">
+        <section class="calendar-card">
+            <div class="calendar-toolbar">
+                <button id="prevMonth" class="calendar-nav-btn" aria-label="Previous month"><i class="fas fa-chevron-left"></i></button>
+                <h2 id="currentMonth"></h2>
+                <button id="nextMonth" class="calendar-nav-btn" aria-label="Next month"><i class="fas fa-chevron-right"></i></button>
             </div>
-            </button>
-            <button id="groceryListButton" onclick="window.location.href='grocery.html'">
-                <i class="fas fa-list-check"></i>
-            </button>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                <button id="todayBtn" class="today-btn">Today</button>
+            </div>
+            <div class="calendar-weekdays" aria-hidden="true">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </section>
+    </main>
+
+    <div class="modal" id="addMealModal" role="dialog" aria-modal="true" aria-labelledby="modalDate">
+        <div class="sheet">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-header">
+                <h3 id="modalDate"></h3>
+                <button class="sheet-close" id="closeModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="sheet-body">
+                <button id="randomMealButton" class="random-btn">
+                    <i class="fas fa-dice"></i> Surprise me
+                </button>
+                <input class="dish-search-input" id="dishSearch" type="text" placeholder="Search for a dish…" />
+                <ul class="dish-pick-list" id="dishPickList"></ul>
+                <div class="clear-meal-row">
+                    <span class="help" id="currentMealLabel"></span>
+                    <button class="btn btn-ghost btn-sm" id="clearMealBtn"><i class="fas fa-trash-can"></i> Clear meal</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
-    <script type="module" src="script.js?v=2"></script>
-</body>
+    <nav class="bottom-nav"></nav>
 
+    <script type="module" src="script.js?v=20"></script>
+</body>
 </html>

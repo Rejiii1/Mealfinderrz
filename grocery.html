@@ -1,53 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery List</title>
-    <link rel="stylesheet" href="styles.css?v=7">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Grocery List · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=20" />
     <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#072444" />
+    <link rel="icon" href="icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+<body>
+    <header class="app-header"></header>
 
-<body class="grocery-page">
-    <header>
-        <h1><img src="launch.png" alt="Meals Icon">Grocery List</h1>
-        <a href="https://dunkin.fun" class="header-logo-link">
-            <img src="DunkinNet.png" alt="DunkinNet" class="header-logo">
-        </a>
-    </header>
-
-    <div class="grocery-list-actions">
-        <button id="clearGroceryList" class="clear-button">Clear All</button>
-    </div>
-
-    <div class="grocery-list-container">
-        <ul id="groceryList">
-        </ul>
-    </div>
-
-    <div class="bottom-navigation">
-        <div class="bottom-buttons">
-            <button id="dishLibraryButton" onclick="window.location.href='dishes.html'">
-                <i class="fas fa-book"></i>
+    <main class="page">
+        <div class="grocery-summary">
+            <div class="stats" id="groceryStats"></div>
+            <button id="clearGroceryList" class="btn btn-ghost btn-sm">
+                <i class="fas fa-rotate-left"></i> Reset all
             </button>
-            <button id="homeButton" onclick="window.location.href='index.html'">
-                <i class="fas fa-home"></i>
-            </button>
-            <div class="active-grocery-button">
-                <button id="active-groceryListButton">
-                    <i class="fas fa-list-check"></i>
-                </button>
-            </div>
         </div>
-    </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
-    <script type="module" src="grocery.js"></script>
+        <div id="groceryListWrap"></div>
+    </main>
+
+    <nav class="bottom-nav"></nav>
+
+    <script type="module" src="grocery.js?v=20"></script>
 </body>
-
 </html>

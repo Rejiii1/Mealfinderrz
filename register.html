@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Create account · MealFinderrz</title>
+    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-180x180.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="brand-icon"><i class="fas fa-utensils"></i></div>
+            <div>
+                <h1>Create account</h1>
+                <p class="subtitle">Plan meals with your household.</p>
+            </div>
+        </div>
+
+        <form id="registerForm" class="field">
+            <div class="field">
+                <label for="displayName">Your name</label>
+                <input class="input" type="text" id="displayName" placeholder="Robert" required maxlength="64" />
+            </div>
+            <div class="field">
+                <label for="username">Username</label>
+                <input class="input" type="text" id="username" required minlength="3" maxlength="32" autocomplete="username"
+                       pattern="[A-Za-z0-9_.\-]+" placeholder="rob" />
+                <span class="help">Letters, numbers, dot, underscore, dash. 3–32 characters.</span>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input class="input" type="password" id="password" required minlength="6" autocomplete="new-password" />
+                <span class="help">At least 6 characters.</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="auth-tabs" role="tablist">
+                <button type="button" data-action="create" class="active">Create family</button>
+                <button type="button" data-action="join">Join with code</button>
+            </div>
+
+            <div class="field" id="familyNameField">
+                <label for="familyName">Family name</label>
+                <input class="input" type="text" id="familyName" placeholder="The Jacksons" maxlength="64" />
+                <span class="help">You can change this later. You'll get an invite code to share.</span>
+            </div>
+
+            <div class="field" id="inviteCodeField" style="display: none;">
+                <label for="inviteCode">Invite code</label>
+                <input class="input" type="text" id="inviteCode" placeholder="ABC123" maxlength="6" style="text-transform: uppercase; letter-spacing: 4px; font-family: ui-monospace, monospace;" />
+                <span class="help">Ask your family member for the 6-character code.</span>
+            </div>
+
+            <button class="btn btn-block btn-lg" type="submit" id="submitBtn">
+                <i class="fas fa-user-plus"></i> Create account
+            </button>
+        </form>
+
+        <p class="auth-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </p>
+    </div>
+
+    <script type="module">
+        import { api, toast } from './app.js?v=20';
+
+        api.get('/api/auth/me').then(({ user }) => {
+            if (user) location.href = user.familyId ? '/' : '/family';
+        }).catch(() => {});
+
+        let familyAction = 'create';
+        const tabs = document.querySelectorAll('.auth-tabs button');
+        const familyNameField = document.getElementById('familyNameField');
+        const inviteCodeField = document.getElementById('inviteCodeField');
+
+        tabs.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                tabs.forEach((b) => b.classList.remove('active'));
+                btn.classList.add('active');
+                familyAction = btn.dataset.action;
+                familyNameField.style.display = familyAction === 'create' ? '' : 'none';
+                inviteCodeField.style.display = familyAction === 'join' ? '' : 'none';
+            });
+        });
+
+        const form = document.getElementById('registerForm');
+        const submitBtn = document.getElementById('submitBtn');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                displayName: document.getElementById('displayName').value.trim(),
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                familyAction,
+                familyName: document.getElementById('familyName').value.trim(),
+                inviteCode: document.getElementById('inviteCode').value.trim(),
+            };
+            submitBtn.disabled = true;
+            const original = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating…';
+            try {
+                const { user } = await api.post('/api/auth/register', payload);
+                toast(`Welcome, ${user.displayName}!`, 'success');
+                setTimeout(() => { location.href = user.familyId ? '/' : '/family'; }, 400);
+            } catch (err) {
+                toast(err.message || 'Could not create account', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = original;
+            }
+        });
+    </script>
+</body>
+</html>
