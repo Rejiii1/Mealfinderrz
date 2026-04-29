@@ -1,17 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dish Library</title>
     <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+
 <body>
 
     <header>
         <h1><img src="launch.png" alt="Meals Icon"> Dish Library</h1>
+        <a href="https://dunkin.fun" class="header-logo-link">
+            <img src="DunkinNet.png" alt="DunkinNet" class="header-logo">
+        </a>
     </header>
 
     <div class="dish-library-management">
@@ -25,7 +32,7 @@
                         <button id="clearFilter">All</button>
                     </div>
                     <div id="tagButtonsContainer">
-                        </div>
+                    </div>
                     <div class="popup-footer">
                         <button id="openAddTagPopup"><i class="fas fa-pencil"></i></button>
                     </div>
@@ -43,13 +50,13 @@
                     </div>
                     <h4>Existing Tags:</h4>
                     <ul id="existingTagsList">
-                        </ul>
+                    </ul>
                 </div>
             </div>
 
         </div>
         <div id="dishListContainer" class="dish-grid">
-            </div>
+        </div>
 
         <div id="addDishModal" class="modal">
             <div class="modal-content">
@@ -65,52 +72,52 @@
                     <button id="addDishWithIngredientsButton"><i class="fas fa-plus"></i></button>
                 </div>
                 <ul id="ingredientsList">
-                    </ul>
+                </ul>
 
                 <h4>Tags:</h4>
                 <select id="availableTags">
                     <option value="">Add a tag</option>
-                    </select>
-                    <ul id="selectedTagsList"></ul>
-                    <button id="addDishButton">Save Dish</button>
-                
-                
-            </div>
+                </select>
+                <ul id="selectedTagsList"></ul>
+                <button id="addDishButton">Save Dish</button>
+
+
             </div>
         </div>
+    </div>
 
-        
-        <div id="dishListContainer" class="dish-grid">
-            </div>
 
-            <div id="editDishModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-button" id="closeEditModal">&times;</span>
-                    <h3>Edit Dish</h3>
-                    <label for="editDishName">Dish Name:</label>
-                    <input type="text" id="editDishName">
-            
-                    <h4>Ingredients:</h4>
-                    <ul id="editIngredientsList">
-                        </ul>
-                    <div class="add-ingredient">
-                        <input type="text" id="editNewIngredientName" placeholder="Ingredient Name">
-                        <input type="text" id="editNewIngredientQuantity" placeholder="Quantity">
-                        <button id="editAddIngredientButton"><i class="fas fa-plus"></i></button>
-                    </div>
-                    <h4>Tags:</h4>
-                    <div class="add-tag">
-                        <select id="editAvailableTags">
-                            <option value="">Add a tag</option>
-                            </select>
-                    </div>
-                    <ul id="editSelectedTagsList"></ul>
-            
-                    <button id="saveEditedDishButton">Save Changes</button>
-                    <button id="deleteEditedDishButton">Delete Dish</button>
-                    <input type="hidden" id="currentDishId">
-                </div>
+    <div id="dishListContainer" class="dish-grid">
+    </div>
+
+    <div id="editDishModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeEditModal">&times;</span>
+            <h3>Edit Dish</h3>
+            <label for="editDishName">Dish Name:</label>
+            <input type="text" id="editDishName">
+
+            <h4>Ingredients:</h4>
+            <ul id="editIngredientsList">
+            </ul>
+            <div class="add-ingredient">
+                <input type="text" id="editNewIngredientName" placeholder="Ingredient Name">
+                <input type="text" id="editNewIngredientQuantity" placeholder="Quantity">
+                <button id="editAddIngredientButton"><i class="fas fa-plus"></i></button>
             </div>
+            <h4>Tags:</h4>
+            <div class="add-tag">
+                <select id="editAvailableTags">
+                    <option value="">Add a tag</option>
+                </select>
+            </div>
+            <ul id="editSelectedTagsList"></ul>
+
+            <button id="saveEditedDishButton">Save Changes</button>
+            <button id="deleteEditedDishButton">Delete Dish</button>
+            <input type="hidden" id="currentDishId">
+        </div>
+    </div>
     </div>
 
     <div class="bottom-navigation">
@@ -118,7 +125,7 @@
             <div class="active-dish-button">
                 <button id="active-dishLibraryButton">
                     <i class="fas fa-book"></i>
-                        </button>
+                </button>
             </div>
             <button id="homeButton" onclick="window.location.href='index.html'">
                 <i class="fas fa-home"></i>
@@ -131,4 +138,5 @@
 
     <script src="dishes.js" type="module"></script>
 </body>
+
 </html>
