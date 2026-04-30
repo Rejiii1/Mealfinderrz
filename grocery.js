@@ -1,4 +1,4 @@
-import { api, cache, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser, escapeHtml } from './app.js?v=24';
+import { api, cache, toast, capitalizeWords, renderHeader, renderBottomNav, requireUser, escapeHtml } from './app.js?v=25';
 
 let groceryItems = []; // [{ name, totalQuantity, unit, haveIt, dishIds }]
 let allDishes = [];

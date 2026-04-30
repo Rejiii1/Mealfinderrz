@@ -1,6 +1,6 @@
 // MealFinderrz service worker — caches the app shell so tab-switches are
 // instant on iPhone. Bumping VERSION invalidates everything in one shot.
-const VERSION = 'mfz-v24';
+const VERSION = 'mfz-v25';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
