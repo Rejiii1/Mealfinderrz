@@ -1,4 +1,4 @@
-import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser, escapeHtml, debounce } from './app.js?v=24';
+import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser, escapeHtml, debounce } from './app.js?v=25';
 
 let currentDate = new Date();
 let meals = {};
