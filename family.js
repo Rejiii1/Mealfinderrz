@@ -1,4 +1,4 @@
-import { api, toast, renderHeader, renderBottomNav, requireUser, escapeHtml } from './app.js?v=25';
+import { api, toast, renderHeader, renderBottomNav, requireUser, escapeHtml, getTheme, setTheme } from './app.js?v=26';
 
 let me;
 
@@ -12,6 +12,42 @@ async function load() {
     } catch (e) {
         root.innerHTML = `<div class="empty-state"><div class="icon"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div><h3>Could not load</h3><p>${escapeHtml(e.message)}</p></div>`;
     }
+    renderAppearance(root);
+}
+
+function renderAppearance(root) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginTop = '14px';
+    const current = getTheme();
+    card.innerHTML = `
+        <h2 class="page-title" style="margin-top:0;"><i class="fas fa-palette" aria-hidden="true" style="color: var(--brand-blue);"></i> Appearance</h2>
+        <p class="help" style="margin: -4px 0 10px;">Switch between light, dark, or follow your device.</p>
+        <div class="theme-switcher" role="radiogroup" aria-label="Theme">
+            <button type="button" data-theme="system" role="radio" aria-checked="${current === 'system'}" class="${current === 'system' ? 'active' : ''}">
+                <i class="fas fa-circle-half-stroke" aria-hidden="true"></i> System
+            </button>
+            <button type="button" data-theme="light" role="radio" aria-checked="${current === 'light'}" class="${current === 'light' ? 'active' : ''}">
+                <i class="fas fa-sun" aria-hidden="true"></i> Light
+            </button>
+            <button type="button" data-theme="dark" role="radio" aria-checked="${current === 'dark'}" class="${current === 'dark' ? 'active' : ''}">
+                <i class="fas fa-moon" aria-hidden="true"></i> Dark
+            </button>
+        </div>
+    `;
+    root.appendChild(card);
+    const buttons = card.querySelectorAll('.theme-switcher button');
+    buttons.forEach((b) => {
+        b.addEventListener('click', () => {
+            const theme = b.dataset.theme;
+            setTheme(theme);
+            buttons.forEach((x) => {
+                const on = x === b;
+                x.classList.toggle('active', on);
+                x.setAttribute('aria-checked', on ? 'true' : 'false');
+            });
+        });
+    });
 }
 
 function renderNoFamily(root) {

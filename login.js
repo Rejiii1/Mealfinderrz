@@ -1,4 +1,4 @@
-import { api, toast } from './app.js?v=25';
+import { api, toast } from './app.js?v=26';
 
 // If already signed in, bounce to home
 api.get('/api/auth/me').then(({ user }) => {

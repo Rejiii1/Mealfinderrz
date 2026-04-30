@@ -1,4 +1,4 @@
-import { api, toast } from './app.js?v=25';
+import { api, toast } from './app.js?v=26';
 
 api.get('/api/auth/me').then(({ user }) => {
     if (user) location.href = user.familyId ? '/' : '/family';
