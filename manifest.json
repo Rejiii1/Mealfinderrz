@@ -3,12 +3,16 @@
   "short_name": "Meals",
   "description": "Family meal planner — shared calendar, dish library, and grocery list.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#072444",
   "theme_color": "#072444",
   "orientation": "portrait",
+  "categories": ["productivity", "lifestyle", "food"],
   "icons": [
-    { "src": "icon-180x180.png", "type": "image/png", "sizes": "180x180" },
-    { "src": "launch.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+    { "src": "/icon-180x180.png", "type": "image/png", "sizes": "180x180" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
   ]
 }

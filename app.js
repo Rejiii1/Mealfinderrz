@@ -99,6 +99,23 @@ export async function cachedGet(path, onFresh) {
     return networkPromise;
 }
 
+// ─── Shared HTML escape + debounce utilities ────────────────────────
+
+const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
+}
+
+export function debounce(fn, wait = 150) {
+    let t;
+    const wrapped = (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+    };
+    wrapped.cancel = () => clearTimeout(t);
+    return wrapped;
+}
+
 // ─── Toasts ──────────────────────────────────────────────────────────
 
 let toastHost;
@@ -161,15 +178,16 @@ export function bindModalDismiss(modal, ...closers) {
 export function renderHeader({ title, icon = 'fa-utensils', user } = {}) {
     const header = document.querySelector('header.app-header');
     if (!header) return;
+    const safeIcon = /^fa-[a-z0-9-]+$/.test(icon) ? icon : 'fa-utensils';
     header.innerHTML = `
       <div class="brand">
-        <div class="brand-icon"><i class="fas ${icon}"></i></div>
-        <h1>${title || 'MealFinderrz'}</h1>
+        <div class="brand-icon"><i class="fas ${safeIcon}" aria-hidden="true"></i></div>
+        <h1>${escapeHtml(title || 'MealFinderrz')}</h1>
       </div>
       <div class="header-actions">
         ${user
-            ? `<a href="/family" class="icon-btn" title="Settings" aria-label="Settings"><i class="fas fa-gear"></i></a>
-               <button id="logoutBtn" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-sign-out-alt"></i></button>`
+            ? `<a href="/family" class="icon-btn" title="Settings" aria-label="Settings"><i class="fas fa-gear" aria-hidden="true"></i></a>
+               <button id="logoutBtn" class="icon-btn" title="Log out" aria-label="Log out"><i class="fas fa-sign-out-alt" aria-hidden="true"></i></button>`
             : ''}
       </div>
     `;
@@ -197,8 +215,8 @@ export function renderBottomNav(active) {
     nav.innerHTML = items
         .map(
             (it) => `
-        <a href="${it.href}" class="${it.key === active ? 'active' : ''}" aria-label="${it.label}">
-          <i class="fas ${it.icon}"></i>
+        <a href="${it.href}" class="${it.key === active ? 'active' : ''}" aria-label="${it.label}"${it.key === active ? ' aria-current="page"' : ''}>
+          <i class="fas ${it.icon}" aria-hidden="true"></i>
           <span class="label">${it.label}</span>
         </a>`
         )

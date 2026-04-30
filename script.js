@@ -1,4 +1,4 @@
-import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=23';
+import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser, escapeHtml, debounce } from './app.js?v=24';
 
 let currentDate = new Date();
 let meals = {};
@@ -122,10 +122,6 @@ function renderDishPickList(query = '') {
     });
 }
 
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 async function pickDish(name) {
     if (!activeDateKey) return;
     try {
@@ -207,9 +203,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         currentDate = new Date();
         renderCalendar();
     });
+    document.addEventListener('keydown', (e) => {
+        if (els.modal && els.modal.classList.contains('open')) return;
+        if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+        if (e.key === 'ArrowLeft') {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        } else if (e.key === 'ArrowRight') {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        } else if (e.key.toLowerCase() === 't') {
+            currentDate = new Date();
+            renderCalendar();
+        }
+    });
     document.getElementById('randomMealButton').addEventListener('click', pickRandom);
     document.getElementById('clearMealBtn').addEventListener('click', clearMeal);
-    els.search.addEventListener('input', (e) => renderDishPickList(e.target.value));
+    const onSearchInput = debounce(() => renderDishPickList(els.search.value), 80);
+    els.search.addEventListener('input', onSearchInput);
     els.search.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const first = els.pickList.querySelector('li:not(.empty)');
