@@ -1,5 +1,35 @@
 // Shared client utilities — toasts, fetch wrapper, modal helpers, auth.
 
+// ─── Theme: system / light / dark ───────────────────────────────────
+// Applied as `<html data-theme="…">`. CSP forbids inline scripts, so this
+// runs at module-import time (before any of the page modules render).
+
+const THEME_KEY = 'mfz:theme';
+export const THEMES = ['system', 'light', 'dark'];
+
+export function getTheme() {
+    try {
+        const v = localStorage.getItem(THEME_KEY);
+        return THEMES.includes(v) ? v : 'system';
+    } catch {
+        return 'system';
+    }
+}
+
+export function setTheme(theme) {
+    if (!THEMES.includes(theme)) theme = 'system';
+    try { localStorage.setItem(THEME_KEY, theme); } catch {}
+    applyTheme(theme);
+}
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+    if (theme === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', theme);
+}
+
+applyTheme(getTheme());
+
 // ─── Service worker (snappy tab-switching on iPhone) ────────────────
 
 if ('serviceWorker' in navigator) {
