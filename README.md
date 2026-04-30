@@ -1,55 +1,77 @@
-# 🍽️ Weekly Menu Planner
+# MealFinderrz
 
-A shared meal planner and grocery list generator for busy humans who just want dinner to be easier.
+A family meal planner with a shared calendar, dish library, and auto-generated
+grocery list. Installable PWA, optimized for iPhone.
 
-## 🤔 Why I Built This
+## Features
 
-Me and Leah were always having the same conversation:  
-> *"What should we do for dinner?"*  
-Then we'd go to the store and somehow still forget half of what we needed.
+- Shared calendar — one tap to plan dinner for any day
+- Dish library with ingredients and tags, filterable and searchable
+- Auto-generated grocery list rolled up from the meals you've planned
+- Multi-user families with 6-character invite codes
+- Cookie-session auth (no third-party identity provider)
+- Works offline (service-worker app shell + cached API responses)
+- Light / dark mode based on system preference
 
-This app is our fix — a simple, shared place to plan meals for the week and get a complete grocery list without the chaos.
+## Architecture
 
-## ✨ What It Does
+Single-process Node/Express server. State lives in a JSON file at `data/db.json`
+written atomically through a single-writer mutex. Frontend is plain ES modules
+(no bundler), an iPhone-tuned design system in `styles.css`, and a tiny service
+worker for offline.
 
-- 📚 Choose meals from your personal meal list  
-- 📆 Assign meals to specific days on a weekly calendar  
-- 🛒 Auto-generate a grocery list from your planned meals  
-- ✍️ Add, edit, and delete meals anytime  
-- 👥 Supports multiple users — perfect for households and partners  
+```
+server.js        Express app + cookie-session + JSON-file store
+sw.js            Service worker (network-first nav, SWR for assets)
+app.js           Shared client utilities (api, toast, modal, escapeHtml…)
+script.js        Calendar page
+dishes.js        Dish library page
+grocery.js       Grocery list page
+family.html      Settings / family / account page (inline module)
+*.html           One page per route
+styles.css       Design system (light + dark)
+```
 
-## 🛠️ Tech Stack
+## Run locally
 
-- HTML, CSS, JavaScript  
-- Firebase (Firestore + Auth) for syncing across users  
-- Custom-built calendar view (no FullCalendar)  
-- Responsive design for desktop & mobile use  
+```bash
+npm install
+npm start         # server on http://localhost:3000
+```
 
-## 🚀 Features
+The first request initialises `data/db.json`. Sign in via `/register` and
+either create a family or join one with an invite code.
 
-- **Searchable Meal Library** – Quickly find your go-to dinners  
-- **Drag-to-Assign Calendar View** – Plan your week in seconds  
-- **Shared Grocery List** – One list for everyone in your household  
-- **Multi-User Support** – Sign in and collaborate with your partner or roomies  
-- **Firebase-Powered** – Real-time sync, no data loss  
+## Deploy via Docker
 
-## 📸 Demo
+```bash
+docker build -t mealfinderrz .
+docker run -p 3000:3000 -v $(pwd)/data:/app/data \
+    -e NODE_ENV=production \
+    -e SESSION_SECRET=$(openssl rand -hex 32) \
+    mealfinderrz
+```
 
-> Try it out locally or deploy your own with Firebase!  
-> [GitHub Repo](https://github.com/Rejiii1/Weekly-Menu-2)
+The shipped image:
+- runs as the `node` user, behind `tini` for proper signal handling
+- ships a HEALTHCHECK that pings `/api/auth/me`
+- writes data only inside the `/app/data` volume
 
-## 📝 Roadmap
+In production behind a TLS-terminating reverse proxy (nginx, Caddy, NPM, etc.)
+the server enables HSTS + secure cookies via `NODE_ENV=production`.
 
-- [ ] Add photos to meals  
-- [ ] Tag meals by category (vegan, quick, freezer-friendly)  
-- [ ] Grocery list export (PDF, email, or shareable link)  
-- [ ] Ingredient inventory management  
+## CI / publish
 
-## 🙌 Contributing
+`.github/workflows/docker-publish.yml` builds and pushes
+`ghcr.io/<owner>/mealfinderrz:latest` on every push to `main`.
 
-Pull requests and feedback are always welcome! If you’ve got ideas or want to improve something, jump in.
+## Security notes
 
----
-
-Made with love (and a little hunger) by [Trip](https://www.linkedin.com/in/trip-username)  
-> *Naval Architect by day, dinner tamer by night.*
+- Session cookies are HTTP-only, SameSite=Lax, and Secure in production.
+- Auth endpoints (`/api/auth/{login,register}`) are rate-limited to 20 req per
+  IP per 15 minutes.
+- All mutating routes go through a single-writer mutex to avoid TOCTOU races.
+- Strict CSP, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, and HSTS
+  in production.
+- Username matching is case-insensitive; passwords always run through bcrypt
+  (even for unknown users) to neutralise timing-based username enumeration.

@@ -1,4 +1,4 @@
-import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser } from './app.js?v=23';
+import { api, cache, cachedGet, toast, capitalizeWords, openModal, closeModal, bindModalDismiss, renderHeader, renderBottomNav, requireUser, escapeHtml, debounce } from './app.js?v=24';
 
 let allDishes = [];
 let allTags = [];
@@ -9,10 +9,6 @@ let workingIngredients = {}; // { id: {name, quantity, haveIt} }
 let workingTags = []; // [name]
 
 const els = {};
-
-function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 
 function applyDishes(list) {
     allDishes = Array.isArray(list) ? [...list] : [];
@@ -161,7 +157,7 @@ function addIngredient() {
         toast('Ingredient name required', 'error');
         return;
     }
-    const id = `ing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = `ing-${(crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`}`;
     workingIngredients[id] = { name: name.toLowerCase(), quantity: qty || '1', haveIt: false };
     els.ingName.value = '';
     els.ingQty.value = '';
@@ -341,10 +337,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     els.saveDishBtn.addEventListener('click', saveDish);
     els.deleteDishBtn.addEventListener('click', deleteDish);
 
-    document.getElementById('dishSearch').addEventListener('input', (e) => {
-        searchQuery = e.target.value;
+    const searchInput = document.getElementById('dishSearch');
+    const onSearch = debounce(() => {
+        searchQuery = searchInput.value;
         renderDishes();
-    });
+    }, 100);
+    searchInput.addEventListener('input', onSearch);
 
     await loadAll();
 });

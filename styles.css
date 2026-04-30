@@ -19,7 +19,7 @@
   /* Text */
   --text: #18222F;
   --text-soft: #4B5969;
-  --text-muted: #8593A4;
+  --text-muted: #6B7A8C;
   --text-on-brand: #FFCB05;
   --on-yellow: #18222F;
 
@@ -1206,4 +1206,109 @@ img { max-width: 100%; display: block; }
   .page { padding: 12px; }
   .auth-card { padding: 22px 18px; }
   .dish-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+}
+
+/* ================================================================
+   iOS / touch polish
+   ================================================================ */
+
+/* Smooth momentum scrolling inside scrollable surfaces. */
+.modal .sheet-body,
+.dish-pick-list,
+.grocery-list {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Stop iOS auto-zooming form fields on focus (anything <16px triggers it). */
+@supports (-webkit-touch-callout: none) {
+  .input, .textarea, select.input, .dish-search-input, input[type="search"] {
+    font-size: 16px;
+  }
+}
+
+/* Hover styles cause sticky highlights on touch devices — only apply them on
+   devices that actually have a hover-capable pointer. */
+@media (hover: none) {
+  .icon-btn:hover,
+  .calendar-nav-btn:hover,
+  .day:hover,
+  .today-btn:hover,
+  .btn:hover,
+  .btn.btn-secondary:hover,
+  .btn.btn-yellow:hover,
+  .btn.btn-danger:hover,
+  .btn.btn-ghost:hover,
+  .modal .sheet-close:hover,
+  .dish-pick-list li:hover,
+  .bottom-nav a:hover {
+    background: inherit;
+    color: inherit;
+    filter: none;
+    transform: none;
+  }
+}
+
+/* Make sure tappable bottom nav fully respects the safe-area inset. */
+.bottom-nav { bottom: max(14px, calc(14px + var(--safe-bottom))); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ================================================================
+   Dark mode — keep brand identity, raise contrast on dark surfaces
+   ================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a1626;
+    --bg-2: #11203a;
+    --surface: #122948;
+    --surface-2: #0e2240;
+    --overlay: rgba(0, 0, 0, 0.7);
+
+    --text: #EDF1F7;
+    --text-soft: #B8C4D6;
+    --text-muted: #7E8DA3;
+
+    --border: #1f3358;
+    --border-soft: #1a2c4a;
+
+    --brand-yellow-soft: #2a2410;
+
+    --accent-soft: #3a2a23;
+    --success-soft: #163528;
+    --danger-soft: #3a1f1f;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  .day.today {
+    background: linear-gradient(180deg, rgba(255, 203, 5, 0.18) 0%, var(--surface-2) 70%);
+  }
+  .day.has-meal { background: var(--surface); }
+  .day .meal {
+    color: var(--brand-yellow);
+    background: rgba(255, 203, 5, 0.14);
+  }
+
+  .dish-search-input {
+    background-color: var(--surface-2);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%237E8DA3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+  }
+
+  .btn.btn-secondary { background: var(--surface-2); color: var(--text); }
+  .btn.btn-ghost:hover { background: var(--bg-2); }
+  .icon-btn { background: rgba(255, 255, 255, 0.06); }
+
+  /* Dark scheme for native form chrome where supported. */
+  html { color-scheme: dark; }
 }

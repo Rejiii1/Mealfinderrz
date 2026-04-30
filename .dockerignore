@@ -2,6 +2,7 @@ node_modules
 data
 .env
 .env.*
+!.env.example
 .git
 .github
 .claude
@@ -10,3 +11,5 @@ memory
 *.log
 README.md
 LICENSE
+.dockerignore
+.gitignore
